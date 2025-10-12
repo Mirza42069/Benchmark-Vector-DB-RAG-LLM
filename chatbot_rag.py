@@ -8,8 +8,7 @@ from pinecone import Pinecone, ServerlessSpec
 
 # import langchain
 from langchain_pinecone import PineconeVectorStore
-from langchain_openai import OpenAIEmbeddings
-from langchain_openai import ChatOpenAI
+from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 load_dotenv()
@@ -23,15 +22,13 @@ pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
 index_name = os.environ.get("PINECONE_INDEX_NAME")  # change if desired
 index = pc.Index(index_name)
 
-# initialize embeddings model + vector store
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large",api_key=os.environ.get("OPENAI_API_KEY"))
+# initialize embeddings model + vector store (using Ollama)
+embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 vector_store = PineconeVectorStore(index=index, embedding=embeddings)
 
 # initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
-    st.session_state.messages.append(SystemMessage("You are an assistant for question-answering tasks. "))
 
 # display chat messages from history on app rerun
 for message in st.session_state.messages:
@@ -51,13 +48,13 @@ if prompt:
     # add the message from the user (prompt) to the screen with streamlit
     with st.chat_message("user"):
         st.markdown(prompt)
+    
+    st.session_state.messages.append(HumanMessage(prompt))
 
-        st.session_state.messages.append(HumanMessage(prompt))
-
-    # initialize the llm
-    llm = ChatOpenAI(
-        model="gpt-4o",
-        temperature=1
+    # initialize the llm (using Ollama)
+    llm = ChatOllama(
+        model="llama3.2:3b",
+        temperature=0.7
     )
 
     # creating and invoking the retriever
@@ -67,31 +64,34 @@ if prompt:
     )
 
     docs = retriever.invoke(prompt)
-    docs_text = "".join(d.page_content for d in docs)
+    docs_text = "\n\n".join(d.page_content for d in docs)
 
     # creating the system prompt
     system_prompt = """You are an assistant for question-answering tasks. 
     Use the following pieces of retrieved context to answer the question. 
     If you don't know the answer, just say that you don't know. 
-    Use three sentences maximum and keep the answer concise.
-    Context: {context}:"""
+    Keep the answer concise and well-formatted.
+    
+    Context: {context}"""
 
     # Populate the system prompt with the retrieved context
     system_prompt_fmt = system_prompt.format(context=docs_text)
 
-
     print("-- SYS PROMPT --")
     print(system_prompt_fmt)
 
-    # adding the system prompt to the message history
-    st.session_state.messages.append(SystemMessage(system_prompt_fmt))
+    # Create a temporary message list with the system prompt
+    messages_with_context = [SystemMessage(system_prompt_fmt)] + st.session_state.messages
 
-    # invoking the llm
-    result = llm.invoke(st.session_state.messages).content
-
-    # adding the response from the llm to the screen (and chat)
+    # invoking the llm with streaming
     with st.chat_message("assistant"):
-        st.markdown(result)
-
-        st.session_state.messages.append(AIMessage(result))
-
+        message_placeholder = st.empty()
+        full_response = ""
+        
+        for chunk in llm.stream(messages_with_context):
+            full_response += chunk.content
+            message_placeholder.markdown(full_response + "▌")
+        
+        message_placeholder.markdown(full_response)
+    
+    st.session_state.messages.append(AIMessage(full_response))

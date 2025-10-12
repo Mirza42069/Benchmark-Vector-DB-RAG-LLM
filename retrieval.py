@@ -7,7 +7,7 @@ from pinecone import Pinecone, ServerlessSpec
 
 # import langchain
 from langchain_pinecone import PineconeVectorStore
-from langchain_openai import OpenAIEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from langchain_core.documents import Document
 
 load_dotenv()
@@ -20,9 +20,9 @@ pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
 index_name = os.environ.get("PINECONE_INDEX_NAME") 
 index = pc.Index(index_name)
 
-# initialize embeddings model + vector store
+# initialize embeddings model + vector store (using Ollama)
 
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large",api_key=os.environ.get("OPENAI_API_KEY"))
+embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 vector_store = PineconeVectorStore(index=index, embedding=embeddings)
 
 # retrieval
@@ -30,7 +30,7 @@ retriever = vector_store.as_retriever(
     search_type="similarity_score_threshold",
     search_kwargs={"k": 5, "score_threshold": 0.5},
 )
-results = retriever.invoke("what is retrieval augmented generation?")
+results = retriever.invoke("Jelaskan Alur Pengajuan Cuti Akademik?")
 
 # show results
 print("RESULTS:")

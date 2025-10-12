@@ -8,7 +8,7 @@ from pinecone import Pinecone, ServerlessSpec
 
 # import langchain
 from langchain_pinecone import PineconeVectorStore
-from langchain_openai import OpenAIEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from langchain_core.documents import Document
 
 #documents
@@ -28,7 +28,7 @@ existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
 if index_name not in existing_indexes:
     pc.create_index(
         name=index_name,
-        dimension=3072,
+        dimension=1024,  # mxbai-embed-large produces 1024-dimensional vectors
         metric="cosine",
         spec=ServerlessSpec(cloud="aws", region="us-east-1"),
     )
@@ -37,8 +37,8 @@ if index_name not in existing_indexes:
 
 index = pc.Index(index_name)
 
-# initialize embeddings model + vector store
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large",api_key=os.environ.get("OPENAI_API_KEY"))
+# initialize embeddings model + vector store (using Ollama)
+embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 
 vector_store = PineconeVectorStore(index=index, embedding=embeddings)
 
