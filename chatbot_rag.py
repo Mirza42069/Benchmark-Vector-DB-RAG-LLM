@@ -53,45 +53,76 @@ if prompt:
 
     # initialize the llm (using Ollama)
     llm = ChatOllama(
-        model="llama3.2:3b",
-        temperature=0.7
+        model="qwen3:8b",
+        temperature=0.1
     )
 
-    # creating and invoking the retriever
+    # creating and invoking the retriever with HIGHER threshold
     retriever = vector_store.as_retriever(
         search_type="similarity_score_threshold",
-        search_kwargs={"k": 3, "score_threshold": 0.5},
+        search_kwargs={"k": 3, "score_threshold": 0.75},  # Increased from 0.5 to 0.75
     )
 
     docs = retriever.invoke(prompt)
-    docs_text = "\n\n".join(d.page_content for d in docs)
-
-    # creating the system prompt
-    system_prompt = """You are an assistant for question-answering tasks. 
-    Use the following pieces of retrieved context to answer the question. 
-    If you don't know the answer, just say that you don't know. 
-    Keep the answer concise and well-formatted.
     
-    Context: {context}"""
-
-    # Populate the system prompt with the retrieved context
-    system_prompt_fmt = system_prompt.format(context=docs_text)
-
-    print("-- SYS PROMPT --")
-    print(system_prompt_fmt)
-
-    # Create a temporary message list with the system prompt
-    messages_with_context = [SystemMessage(system_prompt_fmt)] + st.session_state.messages
-
-    # invoking the llm with streaming
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
+    # More strict checking
+    if not docs or len(docs) == 0:
+        # No relevant documents found
+        with st.chat_message("assistant"):
+            response = "Maaf, saya tidak dapat menjawab pertanyaan tersebut karena informasi tidak tersedia dalam dokumen yang saya miliki. Silakan tanyakan hal yang berkaitan dengan konten dokumen yang telah diunggah."
+            st.markdown(response)
         
-        for chunk in llm.stream(messages_with_context):
-            full_response += chunk.content
-            message_placeholder.markdown(full_response + "▌")
+        st.session_state.messages.append(AIMessage(response))
+    else:
+        docs_text = "\n\n".join(d.page_content for d in docs)
         
-        message_placeholder.markdown(full_response)
-    
-    st.session_state.messages.append(AIMessage(full_response))
+        # Additional check: if retrieved text is too short, it's probably not relevant
+        if len(docs_text.strip()) < 50:
+            with st.chat_message("assistant"):
+                response = "Maaf, saya tidak dapat menjawab pertanyaan tersebut karena informasi tidak tersedia dalam dokumen yang saya miliki. Silakan tanyakan hal yang berkaitan dengan konten dokumen yang telah diunggah."
+                st.markdown(response)
+            
+            st.session_state.messages.append(AIMessage(response))
+        else:
+            # Relevant documents found - proceed with answering
+            # creating the VERY strict system prompt
+            system_prompt = """Anda adalah asisten yang HANYA menjawab berdasarkan dokumen yang diberikan. Aturan KETAT:
+
+1. HANYA gunakan informasi dari konteks di bawah ini untuk menjawab
+2. Jika jawaban TIDAK ADA dalam konteks, Anda HARUS menjawab: "Maaf, informasi tersebut tidak tersedia dalam dokumen yang saya miliki."
+3. JANGAN gunakan pengetahuan di luar konteks yang diberikan
+4. JANGAN membuat asumsi atau kesimpulan di luar apa yang tertulis dalam konteks
+5. JANGAN menjawab jika Anda tidak 100% yakin jawabannya ada dalam konteks
+
+Konteks dari dokumen:
+{context}
+
+INGAT: Jika informasi tidak ada dalam konteks di atas, katakan Anda tidak bisa menjawab!"""
+
+            # Populate the system prompt with the retrieved context
+            system_prompt_fmt = system_prompt.format(context=docs_text)
+
+            print("-- SYS PROMPT --")
+            print(system_prompt_fmt)
+            print("-- DOCS RETRIEVED --")
+            print(f"Number of docs: {len(docs)}")
+            print(f"Context length: {len(docs_text)}")
+
+            # Create a temporary message list with the system prompt
+            messages_with_context = [
+                SystemMessage(system_prompt_fmt),
+                HumanMessage(prompt)
+            ]
+
+            # invoking the llm with streaming
+            with st.chat_message("assistant"):
+                message_placeholder = st.empty()
+                full_response = ""
+                
+                for chunk in llm.stream(messages_with_context):
+                    full_response += chunk.content
+                    message_placeholder.markdown(full_response + "▌")
+                
+                message_placeholder.markdown(full_response)
+            
+            st.session_state.messages.append(AIMessage(full_response))
