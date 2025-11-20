@@ -1,188 +1,163 @@
+"""
+Document Ingestion for PostgreSQL with pgvector
+"""
+
 import os
+import sys
 from dotenv import load_dotenv
-from langchain_community.document_loaders import PyPDFDirectoryLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_postgres import PGVector
 from langchain_ollama import OllamaEmbeddings
-import psycopg
-from pgvector.psycopg import register_vector
-import uuid
+
+# Add utils to path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from utils.document_processor import DocumentProcessor
 
 load_dotenv()
 
+# PostgreSQL configuration
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "ragdb")
 DB_USER = os.getenv("DB_USER", "raguser")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "ragpassword")
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "its_guidebook")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
 
-print("=== MANUAL INGESTION TO POSTGRESQL ===\n")
+# Create connection string
+connection_string = f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-# Load documents
-print("1. Loading PDF documents...")
-loader = PyPDFDirectoryLoader("documents/")
-raw_documents = loader.load()
-print(f"   ✅ Loaded {len(raw_documents)} documents")
-
-# Split documents
-print("\n2. Splitting documents...")
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=800,
-    chunk_overlap=200,
-)
-documents = text_splitter.split_documents(raw_documents)
-print(f"   ✅ Created {len(documents)} chunks")
-print(f"   Sample chunk: {documents[0].page_content[:200]}...")
+print("\n" + "="*80)
+print("📚 POSTGRESQL DOCUMENT INGESTION")
+print("="*80)
 
 # Initialize embeddings
-print("\n3. Initializing embeddings...")
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+print(f"\n🤖 Initializing embedding model: {EMBEDDING_MODEL}")
+embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
 
-# Test embedding
-print("\n4. Testing embedding generation...")
-test_embedding = embeddings.embed_query("test query")
-print(f"   ✅ Embedding dimension: {len(test_embedding)}")
+# Initialize vector store
+print(f"\n🔌 Connecting to PostgreSQL...")
+try:
+    vector_store = PGVector(
+        embeddings=embeddings,
+        collection_name=COLLECTION_NAME,
+        connection=connection_string,
+        use_jsonb=True,
+    )
+    print(f"   ✓ Connected successfully")
+    print(f"   • Database: {DB_NAME}")
+    print(f"   • Collection: {COLLECTION_NAME}")
+except Exception as e:
+    print(f"\n❌ Error connecting to database: {str(e)}")
+    print("\n💡 Did you run setup_postgresql.py first?")
+    sys.exit(1)
 
-# Connect to database
-print("\n5. Connecting to PostgreSQL...")
-conn_str = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user={DB_USER} password={DB_PASSWORD}"
+# Clear existing collection (optional)
+print(f"\n🗑️  Clearing existing collection '{COLLECTION_NAME}'...")
+try:
+    # Drop and recreate collection
+    vector_store.delete_collection()
+    vector_store = PGVector(
+        embeddings=embeddings,
+        collection_name=COLLECTION_NAME,
+        connection=connection_string,
+        use_jsonb=True,
+    )
+    print("   ✓ Collection cleared and recreated")
+except Exception as e:
+    print(f"   ℹ️  Creating new collection")
 
-with psycopg.connect(conn_str) as conn:
-    register_vector(conn)
+# Process documents
+print("\n" + "="*80)
+processor = DocumentProcessor()
+chunks = processor.process_documents()
+
+# Clean documents to remove NUL bytes
+print("\n🧹 Cleaning documents (removing NUL bytes)...")
+for chunk in chunks:
+    # Remove NUL bytes from content
+    chunk.page_content = chunk.page_content.replace('\x00', '')
     
-    with conn.cursor() as cur:
-        # Ensure uuid-ossp extension is enabled
-        print("\n6. Enabling uuid-ossp extension...")
-        cur.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
-        conn.commit()
-        
-        # Get or create collection
-        print(f"\n7. Getting/creating collection '{COLLECTION_NAME}'...")
-        cur.execute("""
-            SELECT uuid FROM langchain_pg_collection WHERE name = %s;
-        """, (COLLECTION_NAME,))
-        result = cur.fetchone()
-        
-        if result:
-            collection_id = result[0]
-            print(f"   ✅ Found collection with ID: {collection_id}")
-            
-            # Clear existing data
-            print("\n8. Clearing old embeddings...")
-            cur.execute("""
-                DELETE FROM langchain_pg_embedding WHERE collection_id = %s;
-            """, (collection_id,))
-            conn.commit()
-            print(f"   ✅ Cleared old data")
-        else:
-            # Create collection with explicit UUID
-            print(f"\n8. Creating new collection '{COLLECTION_NAME}'...")
-            collection_id = uuid.uuid4()
-            cur.execute("""
-                INSERT INTO langchain_pg_collection (uuid, name, cmetadata)
-                VALUES (%s, %s, %s);
-            """, (str(collection_id), COLLECTION_NAME, '{}'))
-            conn.commit()
-            print(f"   ✅ Collection created with ID: {collection_id}")
-        
-        # Drop and recreate embedding table with correct structure
-        print("\n9. Recreating embedding table...")
-        cur.execute("DROP TABLE IF EXISTS langchain_pg_embedding CASCADE;")
-        cur.execute(f"""
-            CREATE TABLE langchain_pg_embedding (
-                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                collection_id UUID REFERENCES langchain_pg_collection(uuid) ON DELETE CASCADE,
-                embedding VECTOR({len(test_embedding)}),
-                document TEXT,
-                cmetadata JSONB
-            );
-        """)
-        
-        # Create index
-        cur.execute("""
-            CREATE INDEX IF NOT EXISTS langchain_pg_embedding_collection_idx 
-            ON langchain_pg_embedding(collection_id);
-        """)
-        conn.commit()
-        print("   ✅ Table recreated")
-        
-        # Insert documents with embeddings
-        print(f"\n10. Inserting {len(documents)} documents...")
-        
-        success_count = 0
-        for i, doc in enumerate(documents):
-            if i % 10 == 0:
-                print(f"   Processing document {i+1}/{len(documents)}...")
-            
-            try:
-                # Generate embedding
-                embedding = embeddings.embed_query(doc.page_content)
-                
-                # Generate UUID for this embedding
-                embedding_id = uuid.uuid4()
-                
-                # Insert with explicit ID
-                cur.execute("""
-                    INSERT INTO langchain_pg_embedding (id, collection_id, embedding, document, cmetadata)
-                    VALUES (%s, %s, %s, %s, %s);
-                """, (
-                    str(embedding_id),
-                    str(collection_id),
-                    embedding,
-                    doc.page_content,
-                    psycopg.types.json.Jsonb(doc.metadata if doc.metadata else {})
-                ))
-                
-                success_count += 1
-                
-                # Commit every 20 documents
-                if (i + 1) % 20 == 0:
-                    conn.commit()
-                    print(f"   ✅ Committed {i+1} documents")
-                    
-            except Exception as e:
-                print(f"   ❌ Error on document {i}: {e}")
-                continue
-        
-        # Final commit
-        conn.commit()
-        print(f"   ✅ Successfully inserted {success_count}/{len(documents)} documents!")
-        
-        # Verify
-        print("\n11. Verifying insertion...")
-        cur.execute("""
-            SELECT COUNT(*) FROM langchain_pg_embedding WHERE collection_id = %s;
-        """, (str(collection_id),))
-        count = cur.fetchone()[0]
-        print(f"   ✅ Verified: {count} embeddings in database")
-        
-        # Show sample
-        if count > 0:
-            print("\n12. Sample document check...")
-            cur.execute("""
-                SELECT document, cmetadata FROM langchain_pg_embedding 
-                WHERE collection_id = %s LIMIT 1;
-            """, (str(collection_id),))
-            sample = cur.fetchone()
-            print(f"   Sample text: {sample[0][:200]}...")
-            print(f"   Sample metadata: {sample[1]}")
-            
-            # Test similarity search
-            print("\n13. Testing similarity search...")
-            test_query = "What documents do I need?"
-            test_query_embedding = embeddings.embed_query(test_query)
-            
-            cur.execute("""
-                SELECT document, 1 - (embedding <=> %s::vector) as similarity
-                FROM langchain_pg_embedding
-                WHERE collection_id = %s
-                ORDER BY embedding <=> %s::vector
-                LIMIT 3;
-            """, (test_query_embedding, str(collection_id), test_query_embedding))
-            
-            results = cur.fetchall()
-            print(f"   Found {len(results)} similar documents:")
-            for idx, (doc, sim) in enumerate(results, 1):
-                print(f"   {idx}. Similarity: {sim:.4f} - {doc[:100]}...")
+    # Clean metadata strings
+    if chunk.metadata:
+        for key, value in chunk.metadata.items():
+            if isinstance(value, str):
+                chunk.metadata[key] = value.replace('\x00', '')
 
-print("\n🎉 Ingestion completed successfully!")
+print("   ✓ Documents cleaned")
+
+# Add documents to PostgreSQL
+print("\n" + "="*80)
+print("💾 Adding documents to PostgreSQL...")
+
+uuids = [f"chunk_{i+1:05d}" for i in range(len(chunks))]
+
+batch_size = 50
+total_batches = (len(chunks) + batch_size - 1) // batch_size
+
+print(f"   Processing {len(chunks)} chunks in {total_batches} batches...")
+
+for i in range(0, len(chunks), batch_size):
+    batch_docs = chunks[i:i + batch_size]
+    batch_ids = uuids[i:i + batch_size]
+    current_batch = (i // batch_size) + 1
+    
+    try:
+        vector_store.add_documents(documents=batch_docs, ids=batch_ids)
+        print(f"   ✓ Batch {current_batch}/{total_batches} completed")
+    except Exception as e:
+        print(f"   ✗ Error in batch {current_batch}: {str(e)}")
+
+# Calculate language distribution
+lang_distribution = {}
+for chunk in chunks:
+    lang = chunk.metadata.get('chunk_language', 'unknown')
+    lang_distribution[lang] = lang_distribution.get(lang, 0) + 1
+
+print("\n" + "="*80)
+print("✅ INGESTION COMPLETED SUCCESSFULLY!")
+print("="*80)
+print(f"\n📊 Summary:")
+print(f"   • Total chunks created: {len(chunks)}")
+print(f"   • Vectors stored: {len(chunks)}")
+print(f"   • Database: {DB_NAME}")
+print(f"   • Collection: {COLLECTION_NAME}")
+print(f"   • Embedding model: {EMBEDDING_MODEL}")
+print(f"   • Vector dimension: 1024")
+print(f"\n🌍 Language Distribution:")
+for lang, count in sorted(lang_distribution.items()):
+    lang_name = {"id": "🇮🇩 Indonesian", "en": "🇬🇧 English", "mixed": "🌍 Mixed"}.get(lang, f"❓ {lang}")
+    percentage = (count / len(chunks)) * 100
+    print(f"   • {lang_name}: {count} chunks ({percentage:.1f}%)")
+
+# Test retrieval
+print("\n" + "="*80)
+print("🧪 Testing retrieval with sample queries...")
+print("-" * 80)
+
+test_queries = [
+    ("🇮🇩", "Bagaimana cara mengubah password myITS Portal?"),
+    ("🇬🇧", "What documents do I need to bring when arriving in Surabaya?"),
+]
+
+for lang_flag, query in test_queries:
+    print(f"\n{lang_flag} Testing: \"{query}\"")
+    
+    try:
+        results = vector_store.similarity_search(query, k=3)
+        
+        if results:
+            print(f"   ✅ Found {len(results)} relevant chunks")
+            for idx, doc in enumerate(results, 1):
+                source = doc.metadata.get('source_file', 'Unknown')
+                chunk_lang = doc.metadata.get('chunk_language', '?')
+                lang_emoji = {"id": "🇮🇩", "en": "🇬🇧", "mixed": "🌍"}.get(chunk_lang, "❓")
+                preview = doc.page_content[:80].replace('\n', ' ')
+                print(f"      {idx}. [{lang_emoji}] {source}: {preview}...")
+        else:
+            print("   ❌ No results found!")
+    except Exception as e:
+        print(f"   ❌ Error: {str(e)}")
+
+print("\n" + "="*80)
+print("✨ Ready to use! Run: streamlit run chatbot_postgresql.py")
+print("="*80)

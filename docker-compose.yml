@@ -5,7 +5,7 @@ services:
     container_name: rag_postgres
     environment:
       POSTGRES_USER: raguser
-      POSTGRES_PASSWORD: ragpassword
+      POSTGRES_PASSWORD: 123
       POSTGRES_DB: ragdb
     ports:
       - "5432:5432"
