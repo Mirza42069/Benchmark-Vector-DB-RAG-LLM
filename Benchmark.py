@@ -109,9 +109,9 @@ with st.sidebar:
     - Performance under load
     - Consistency across queries
     
-    **3. Retrieval Quality**
-    - Documents retrieved
-    - Success rate
+    **3. Statistical Analysis**
+    - Mean, Median, Std Deviation
+    - Min/Max response times
     """)
 
 # Initialize vector stores
@@ -276,9 +276,9 @@ if 'benchmark_results' in st.session_state:
         with cols[idx]:
             st.markdown(f"### {db_name}")
             st.metric("Avg Response Time", f"{df['total_time'].mean():.2f} ms")
-            st.metric("Avg Retrieval", f"{df['retrieval_time'].mean():.2f} ms")
+            st.metric("Avg Retrieval Time", f"{df['retrieval_time'].mean():.2f} ms")
             st.metric("Avg LLM Time", f"{df['llm_time'].mean():.2f} ms")
-            st.metric("Success Rate", f"{(df['success'].sum() / len(df) * 100):.1f}%")
+            st.metric("Avg Docs Retrieved", f"{df['num_docs'].mean():.1f}")
     
     st.markdown("---")
     
@@ -371,7 +371,6 @@ if 'benchmark_results' in st.session_state:
     
     st.markdown("---")
     
-
     
     # === STATISTICS TABLE ===
     st.subheader("📊 Detailed Performance Statistics")
@@ -385,7 +384,6 @@ if 'benchmark_results' in st.session_state:
             'Std Dev (ms)': df['total_time'].std(),
             'Min (ms)': df['total_time'].min(),
             'Max (ms)': df['total_time'].max(),
-            'Success Rate (%)': (df['success'].sum() / len(df) * 100),
             'Avg Docs Retrieved': df['num_docs'].mean()
         })
     
@@ -398,7 +396,6 @@ if 'benchmark_results' in st.session_state:
             'Std Dev (ms)': '{:.2f}',
             'Min (ms)': '{:.2f}',
             'Max (ms)': '{:.2f}',
-            'Success Rate (%)': '{:.2f}',
             'Avg Docs Retrieved': '{:.2f}'
         }).background_gradient(subset=['Mean (ms)'], cmap='RdYlGn_r'),
         use_container_width=True
@@ -474,4 +471,4 @@ if 'benchmark_results' in st.session_state:
 
 # Footer
 st.divider()
-st.caption("🎓 ITS RAG Benchmark System | Thesis Research Tool | Powered by Streamlit & Ollama")
+st.caption("🎓 ITS RAG Benchmark System | Powered by Streamlit & Ollama")

@@ -7,7 +7,7 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 # Vector databases
 from pinecone import Pinecone
@@ -368,4 +368,4 @@ if prompt := st.chat_input("Ask me anything about ITS..."):
 
 # Footer
 st.divider()
-st.caption("🎓 ITS Helpdesk Chatbot | All-in-One Comparison | Powered by Ollama")
+st.caption("🎓 ITS Helpdesk Chatbot | Powered by Ollama")
