@@ -214,7 +214,7 @@ def measure_performance(vector_store, query, llm, score_threshold, top_k):
         
         if docs and len(docs) > 0:
             docs_text = "\n\n".join(d.page_content for d in docs)
-            system_prompt = f"Context: {docs_text}\n\nAnswer based only on the context."
+            system_prompt = f"Context: {docs_text}\n\nAnswer based only on the context. Respond in the same language as the question."
             messages = [SystemMessage(system_prompt), HumanMessage(query)]
             
             start = time.time()
@@ -242,17 +242,7 @@ def measure_performance(vector_store, query, llm, score_threshold, top_k):
             'error': str(e)
         }
 
-# Track current database configuration
-current_config = (test_pinecone, test_postgresql, test_chroma)
 
-# Clear old results if configuration changed
-if 'tested_config' in st.session_state:
-    if st.session_state['tested_config'] != current_config:
-        # Configuration changed, clear old results
-        if 'benchmark_results' in st.session_state:
-            del st.session_state['benchmark_results']
-        if 'dfs' in st.session_state:
-            del st.session_state['dfs']
 
 # Main benchmark
 if run_benchmark:
@@ -273,9 +263,18 @@ if run_benchmark:
     total_tests = len(vector_stores) * num_queries
     current_test = 0
     
-    # Randomize queries for varied results
+    # Randomize queries with fixed seed for reproducibility
     randomized_queries = SAMPLE_QUERIES.copy()
+    random.seed(42)
     random.shuffle(randomized_queries)
+    
+    # Track and clear old results if configuration changed
+    current_config = (test_pinecone, test_postgresql, test_chroma)
+    if 'tested_config' in st.session_state and st.session_state['tested_config'] != current_config:
+        if 'benchmark_results' in st.session_state:
+            del st.session_state['benchmark_results']
+        if 'dfs' in st.session_state:
+            del st.session_state['dfs']
     
     for db_name, vector_store in vector_stores.items():
         for i in range(num_queries):
