@@ -13,6 +13,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
+import numpy as np
 
 # Vector databases
 from pinecone import Pinecone
@@ -31,12 +32,86 @@ from utils.document_processor import SAMPLE_QUERIES
 
 load_dotenv()
 
+# ============================================
+# MODERN COLOR PALETTE & STYLING
+# ============================================
+COLORS = {
+    'Pinecone': '#6366F1',      # Indigo
+    'PostgreSQL': '#10B981',    # Emerald
+    'ChromaDB': '#F59E0B',      # Amber
+    'retrieval': '#3B82F6',     # Blue
+    'llm': '#EC4899',           # Pink
+    'background': '#0F172A',
+    'card': '#1E293B',
+    'text': '#F8FAFC',
+    'muted': '#94A3B8',
+}
+
 # Page configuration
 st.set_page_config(
     page_title="RAG Benchmark System",
     page_icon="📊",
     layout="wide"
 )
+
+# Custom CSS
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    .stApp {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .metric-card {
+        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 8px 0;
+    }
+    
+    .metric-label {
+        color: #94A3B8;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .db-badge {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin: 4px;
+    }
+    
+    .badge-pinecone { background: rgba(99, 102, 241, 0.2); color: #6366F1; border: 2px solid #6366F1; }
+    .badge-postgresql { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 2px solid #10B981; }
+    .badge-chromadb { background: rgba(245, 158, 11, 0.2); color: #F59E0B; border: 2px solid #F59E0B; }
+    
+    .section-header {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #F8FAFC;
+        margin: 40px 0 20px 0;
+        padding-bottom: 12px;
+        border-bottom: 3px solid #6366F1;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # Configuration
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
@@ -45,16 +120,27 @@ SCORE_THRESHOLD = float(os.getenv("SCORE_THRESHOLD", "0.75"))
 TOP_K = int(os.getenv("TOP_K", "3"))
 
 # Title
-st.title("📊 RAG System Benchmark Comparison")
-st.markdown("### The Effect of Vector Database Selection on Scalability and Response Speed")
-st.caption("Comparing Pinecone vs PostgreSQL+pgvector vs ChromaDB")
+st.markdown("""
+<div style="text-align: center; padding: 40px 0 20px 0;">
+    <h1 style="font-size: 3rem; font-weight: 700; background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;">
+        📊 RAG System Benchmark
+    </h1>
+    <p style="color: #94A3B8; font-size: 1.125rem; font-weight: 400;">
+        The Effect of Vector Database Selection on Scalability and Response Speed
+    </p>
+    <div style="display: flex; justify-content: center; gap: 12px; margin-top: 16px;">
+        <span class="db-badge badge-pinecone">Pinecone</span>
+        <span class="db-badge badge-postgresql">PostgreSQL + pgvector</span>
+        <span class="db-badge badge-chromadb">ChromaDB</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-# Sidebar configuration
+# Sidebar
 with st.sidebar:
-    st.header("⚙️ Benchmark Configuration")
+    st.markdown("## ⚙️ Configuration")
     
-    # Database selection
-    st.subheader("📂 Select Databases to Test")
+    st.markdown("### 📂 Databases")
     test_pinecone = st.checkbox("Pinecone", value=True)
     test_postgresql = st.checkbox("PostgreSQL + pgvector", value=True)
     test_chroma = st.checkbox("ChromaDB", value=True)
@@ -64,75 +150,31 @@ with st.sidebar:
     
     st.divider()
     
-    # Test parameters
-    st.subheader("🔧 Test Parameters")
-    num_queries = st.slider(
-        "Number of Test Queries",
-        min_value=10,
-        max_value=100,
-        value=60,
-        step=10,
-        help="More queries = better statistical significance"
-    )
-    
-    score_threshold = st.slider(
-        "Similarity Threshold",
-        min_value=0.0,
-        max_value=1.0,
-        value=SCORE_THRESHOLD,
-        step=0.05
-    )
-    
-    top_k = st.slider(
-        "Documents per Query",
-        min_value=1,
-        max_value=10,
-        value=TOP_K
-    )
+    st.markdown("### 🔧 Parameters")
+    num_queries = st.slider("Test Queries", 10, 100, 60, 10)
+    score_threshold = st.slider("Similarity Threshold", 0.0, 1.0, SCORE_THRESHOLD, 0.05)
+    top_k = st.slider("Documents per Query", 1, 10, TOP_K)
     
     st.divider()
     
-    # Run button
     run_benchmark = st.button("🚀 Run Benchmark", type="primary", use_container_width=True)
-    
-    st.divider()
-    
-    st.markdown("""
-    ### 📋 Metrics Measured
-    
-    **1. Response Speed**
-    - Retrieval Time (vector search)
-    - LLM Generation Time
-    - Total Response Time
-    
-    **2. Scalability**
-    - Performance under load
-    - Consistency across queries
-    
-    **3. Statistical Analysis**
-    - Mean, Median, Std Deviation
-    - Min/Max response times
-    """)
 
 # Initialize vector stores
 @st.cache_resource
-def init_all_vector_stores():
-    """Initialize all vector stores"""
+def init_all_vector_stores(_test_pinecone, _test_postgresql, _test_chroma):
     stores = {}
     embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
     
-    # Pinecone
-    if test_pinecone:
+    if _test_pinecone:
         try:
             pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
             index = pc.Index(os.getenv("PINECONE_INDEX_NAME", "its-helpdesk-chatbot"))
             stores['Pinecone'] = PineconeVectorStore(index=index, embedding=embeddings)
-            st.sidebar.success("✅ Pinecone loaded")
+            st.sidebar.success("✅ Pinecone")
         except Exception as e:
-            st.sidebar.error(f"❌ Pinecone: {str(e)}")
+            st.sidebar.error(f"❌ Pinecone: {str(e)[:30]}...")
     
-    # PostgreSQL
-    if test_postgresql:
+    if _test_postgresql:
         try:
             connection_string = f"postgresql+psycopg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
             stores['PostgreSQL'] = PGVector(
@@ -141,12 +183,11 @@ def init_all_vector_stores():
                 connection=connection_string,
                 use_jsonb=True,
             )
-            st.sidebar.success("✅ PostgreSQL loaded")
+            st.sidebar.success("✅ PostgreSQL")
         except Exception as e:
-            st.sidebar.error(f"❌ PostgreSQL: {str(e)}")
+            st.sidebar.error(f"❌ PostgreSQL: {str(e)[:30]}...")
     
-    # ChromaDB
-    if test_chroma:
+    if _test_chroma:
         try:
             client = chromadb.PersistentClient(path="chroma_db")
             stores['ChromaDB'] = Chroma(
@@ -154,16 +195,14 @@ def init_all_vector_stores():
                 collection_name="its_guidebook",
                 embedding_function=embeddings,
             )
-            st.sidebar.success("✅ ChromaDB loaded")
+            st.sidebar.success("✅ ChromaDB")
         except Exception as e:
-            st.sidebar.error(f"❌ ChromaDB: {str(e)}")
+            st.sidebar.error(f"❌ ChromaDB: {str(e)[:30]}...")
     
     return stores
 
 def measure_performance(vector_store, query, llm, score_threshold, top_k):
-    """Measure complete query performance"""
     try:
-        # Retrieval time
         start = time.time()
         retriever = vector_store.as_retriever(
             search_type="similarity_score_threshold",
@@ -172,10 +211,9 @@ def measure_performance(vector_store, query, llm, score_threshold, top_k):
         docs = retriever.invoke(query)
         retrieval_time = time.time() - start
         
-        # LLM time (if docs found)
         if docs and len(docs) > 0:
             docs_text = "\n\n".join(d.page_content for d in docs)
-            system_prompt = f"Context: {docs_text}\n\nAnswer based only on the context. Respond in the same language as the question."
+            system_prompt = f"Context: {docs_text}\n\nAnswer based only on the context."
             messages = [SystemMessage(system_prompt), HumanMessage(query)]
             
             start = time.time()
@@ -187,9 +225,9 @@ def measure_performance(vector_store, query, llm, score_threshold, top_k):
         total_time = retrieval_time + llm_time
         
         return {
-            'retrieval_time': retrieval_time * 1000,  # ms
-            'llm_time': llm_time * 1000,  # ms
-            'total_time': total_time * 1000,  # ms
+            'retrieval_time': retrieval_time * 1000,
+            'llm_time': llm_time * 1000,
+            'total_time': total_time * 1000,
             'num_docs': len(docs),
             'success': len(docs) > 0
         }
@@ -203,43 +241,31 @@ def measure_performance(vector_store, query, llm, score_threshold, top_k):
             'error': str(e)
         }
 
-# Main benchmark execution
+# Main benchmark
 if run_benchmark:
-    # Initialize stores
-    with st.spinner("🔄 Initializing vector stores..."):
-        vector_stores = init_all_vector_stores()
+    with st.spinner("🔄 Initializing..."):
+        vector_stores = init_all_vector_stores(test_pinecone, test_postgresql, test_chroma)
     
     if not vector_stores:
-        st.error("❌ No vector stores initialized! Check your configuration.")
+        st.error("❌ No vector stores initialized!")
         st.stop()
     
-    # Initialize LLM
     llm = ChatOllama(model=CHAT_MODEL, temperature=0.1)
-    
     st.success(f"✅ Initialized {len(vector_stores)} database(s)")
-    st.info(f"📊 Running {num_queries} queries on each database...")
     
-    # Progress tracking
     progress_bar = st.progress(0)
     status_text = st.empty()
     
-    # Store results
     all_results = {db_name: [] for db_name in vector_stores.keys()}
-    
-    # Run benchmark
     total_tests = len(vector_stores) * num_queries
     current_test = 0
     
     for db_name, vector_store in vector_stores.items():
-        st.markdown(f"### 🔄 Testing {db_name}...")
-        
         for i in range(num_queries):
             query = SAMPLE_QUERIES[i % len(SAMPLE_QUERIES)]
-            
-            status_text.text(f"[{db_name}] Query {i+1}/{num_queries}: {query[:50]}...")
+            status_text.text(f"[{db_name}] Query {i+1}/{num_queries}...")
             
             metrics = measure_performance(vector_store, query, llm, score_threshold, top_k)
-            
             all_results[db_name].append({
                 'query_num': i + 1,
                 'query': query,
@@ -250,130 +276,194 @@ if run_benchmark:
             current_test += 1
             progress_bar.progress(current_test / total_tests)
     
-    status_text.text("✅ Benchmark completed!")
+    status_text.text("✅ Completed!")
     
-    # Convert to DataFrames
     dfs = {db_name: pd.DataFrame(results) for db_name, results in all_results.items()}
     combined_df = pd.concat(dfs.values(), ignore_index=True)
     
-    # Store in session state
     st.session_state['benchmark_results'] = combined_df
     st.session_state['dfs'] = dfs
 
-# Display results
+# Display Results
 if 'benchmark_results' in st.session_state:
     combined_df = st.session_state['benchmark_results']
     dfs = st.session_state['dfs']
     
     st.markdown("---")
-    st.header("📈 Benchmark Results")
     
-    # Summary metrics
-    st.subheader("📊 Performance Summary")
+    # Summary Cards
+    st.markdown('<div class="section-header">📊 Performance Summary</div>', unsafe_allow_html=True)
     
     cols = st.columns(len(dfs))
     for idx, (db_name, df) in enumerate(dfs.items()):
+        badge_class = f'badge-{db_name.lower().replace(" ", "").replace("+", "")}'
         with cols[idx]:
-            st.markdown(f"### {db_name}")
-            st.metric("Avg Response Time", f"{df['total_time'].mean():.2f} ms")
-            st.metric("Avg Retrieval Time", f"{df['retrieval_time'].mean():.2f} ms")
-            st.metric("Avg LLM Time", f"{df['llm_time'].mean():.2f} ms")
-            st.metric("Avg Docs Retrieved", f"{df['num_docs'].mean():.1f}")
+            st.markdown(f"""
+            <div class="metric-card">
+                <span class="db-badge {badge_class}">{db_name}</span>
+                <div class="metric-value">{df['total_time'].mean():.0f}ms</div>
+                <div class="metric-label">Average Response</div>
+                <div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <div style="color: #3B82F6; font-weight: 600; font-size: 1.25rem;">{df['retrieval_time'].mean():.1f}ms</div>
+                        <div style="color: #94A3B8; font-size: 0.75rem;">Retrieval</div>
+                    </div>
+                    <div>
+                        <div style="color: #EC4899; font-weight: 600; font-size: 1.25rem;">{df['llm_time'].mean():.1f}ms</div>
+                        <div style="color: #94A3B8; font-size: 0.75rem;">LLM</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
     
-    st.markdown("---")
+    st.markdown("<br><br>", unsafe_allow_html=True)
     
-    # === SCALABILITY ANALYSIS ===
-    st.subheader("📈 Scalability Analysis")
-    st.caption("How response time behaves as the number of queries increases")
+    # Chart 1: Scalability with Rolling Average
+    st.markdown('<div class="section-header">📈 Scalability Analysis</div>', unsafe_allow_html=True)
     
-    fig_scalability = go.Figure()
-    
-    colors = {'Pinecone': '#3498db', 'PostgreSQL': '#2ecc71', 'ChromaDB': '#e74c3c'}
+    fig1 = go.Figure()
     
     for db_name, df in dfs.items():
-        # Add response time line
-        fig_scalability.add_trace(go.Scatter(
+        color = COLORS.get(db_name, '#94A3B8')
+        
+        # Smooth line with rolling average
+        rolling = df['total_time'].rolling(window=5, min_periods=1).mean()
+        
+        # Area under curve
+        fig1.add_trace(go.Scatter(
             x=df['query_num'],
             y=df['total_time'],
-            mode='lines+markers',
-            name=f'{db_name}',
-            line=dict(color=colors.get(db_name, '#95a5a6'), width=2),
-            marker=dict(size=4)
+            fill='tozeroy',
+            fillcolor=f'rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.1)',
+            line=dict(width=0),
+            showlegend=False,
+            hoverinfo='skip'
         ))
         
-        # Add average line
-        avg_time = df['total_time'].mean()
-        fig_scalability.add_trace(go.Scatter(
+        # Main line
+        fig1.add_trace(go.Scatter(
             x=df['query_num'],
-            y=[avg_time] * len(df),
+            y=rolling,
             mode='lines',
-            name=f'{db_name} Avg ({avg_time:.2f} ms)',
-            line=dict(color=colors.get(db_name, '#95a5a6'), width=2, dash='dash'),
-            showlegend=True
+            name=db_name,
+            line=dict(color=color, width=4),
+            hovertemplate=f'<b>{db_name}</b><br>Query: %{{x}}<br>Time: %{{y:.1f}}ms<extra></extra>'
         ))
     
-    fig_scalability.update_layout(
-        title='Response Time Scalability (Query Load Test)',
-        xaxis_title='Query Number (Load)',
-        yaxis_title='Response Time (ms)',
+    fig1.update_layout(
+        title=dict(
+            text='<b>Response Time Under Load</b>',
+            font=dict(size=24, color='#F8FAFC')
+        ),
+        xaxis=dict(
+            title='Query Number',
+            gridcolor='rgba(148, 163, 184, 0.1)',
+            showgrid=True,
+            title_font=dict(size=14, color='#94A3B8'),
+            tickfont=dict(size=12, color='#94A3B8')
+        ),
+        yaxis=dict(
+            title='Response Time (ms)',
+            gridcolor='rgba(148, 163, 184, 0.1)',
+            showgrid=True,
+            title_font=dict(size=14, color='#94A3B8'),
+            tickfont=dict(size=12, color='#94A3B8')
+        ),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(family='Inter', color='#F8FAFC'),
         height=500,
         hovermode='x unified',
-        showlegend=True,
         legend=dict(
             orientation="h",
             yanchor="bottom",
             y=1.02,
-            xanchor="right",
-            x=1
+            xanchor="center",
+            x=0.5,
+            bgcolor='rgba(30, 41, 59, 0.8)',
+            bordercolor='rgba(148, 163, 184, 0.3)',
+            borderwidth=1,
+            font=dict(size=13)
         )
     )
     
-    st.plotly_chart(fig_scalability, use_container_width=True)
+    st.plotly_chart(fig1, use_container_width=True)
     
-    st.markdown("---")
+    # Chart 2: Stacked Bar Comparison
+    st.markdown('<div class="section-header">⚡ Speed Breakdown</div>', unsafe_allow_html=True)
     
-    # === RESPONSE SPEED BREAKDOWN ===
-    st.subheader("⚡ Response Speed Breakdown")
-    st.caption("Time distribution between retrieval and LLM generation")
+    fig2 = go.Figure()
     
-    # Create subplots for each database
-    fig_speed = go.Figure()
+    db_names = list(dfs.keys())
     
-    for db_name, df in dfs.items():
-        fig_speed.add_trace(go.Bar(
-            name=f'{db_name} - Retrieval',
-            x=df['query_num'],
-            y=df['retrieval_time'],
-            marker_color=colors.get(db_name, '#95a5a6'),
-            legendgroup=db_name,
-        ))
-        
-        fig_speed.add_trace(go.Bar(
-            name=f'{db_name} - LLM',
-            x=df['query_num'],
-            y=df['llm_time'],
-            marker_color=colors.get(db_name, '#95a5a6'),
-            marker_pattern_shape="/",
-            legendgroup=db_name,
-        ))
+    # Retrieval bars
+    fig2.add_trace(go.Bar(
+        name='Retrieval Time',
+        x=db_names,
+        y=[dfs[db]['retrieval_time'].mean() for db in db_names],
+        marker=dict(
+            color=COLORS['retrieval'],
+            line=dict(color='rgba(255,255,255,0.2)', width=2)
+        ),
+        text=[f"{dfs[db]['retrieval_time'].mean():.1f}ms" for db in db_names],
+        textposition='inside',
+        textfont=dict(size=14, color='white', family='Inter'),
+        hovertemplate='<b>%{x}</b><br>Retrieval: %{y:.1f}ms<extra></extra>'
+    ))
     
-    fig_speed.update_layout(
-        barmode='group',
-        title='Response Speed Component Breakdown by Database',
-        xaxis_title='Query Number',
-        yaxis_title='Time (ms)',
-        height=500,
-        hovermode='x unified',
-        showlegend=True
+    # LLM bars
+    fig2.add_trace(go.Bar(
+        name='LLM Generation',
+        x=db_names,
+        y=[dfs[db]['llm_time'].mean() for db in db_names],
+        marker=dict(
+            color=COLORS['llm'],
+            line=dict(color='rgba(255,255,255,0.2)', width=2)
+        ),
+        text=[f"{dfs[db]['llm_time'].mean():.1f}ms" for db in db_names],
+        textposition='inside',
+        textfont=dict(size=14, color='white', family='Inter'),
+        hovertemplate='<b>%{x}</b><br>LLM: %{y:.1f}ms<extra></extra>'
+    ))
+    
+    fig2.update_layout(
+        title=dict(
+            text='<b>Average Time Components</b>',
+            font=dict(size=24, color='#F8FAFC')
+        ),
+        barmode='stack',
+        xaxis=dict(
+            title='',
+            tickfont=dict(size=13, color='#F8FAFC')
+        ),
+        yaxis=dict(
+            title='Time (ms)',
+            gridcolor='rgba(148, 163, 184, 0.1)',
+            title_font=dict(size=14, color='#94A3B8'),
+            tickfont=dict(size=12, color='#94A3B8')
+        ),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(family='Inter', color='#F8FAFC'),
+        height=450,
+        bargap=0.2,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="center",
+            x=0.5,
+            bgcolor='rgba(30, 41, 59, 0.8)',
+            bordercolor='rgba(148, 163, 184, 0.3)',
+            borderwidth=1,
+            font=dict(size=13)
+        )
     )
     
-    st.plotly_chart(fig_speed, use_container_width=True)
+    st.plotly_chart(fig2, use_container_width=True)
     
-    st.markdown("---")
-    
-    
-    # === STATISTICS TABLE ===
-    st.subheader("📊 Detailed Performance Statistics")
+    # Statistics Table
+    st.markdown('<div class="section-header">📋 Statistical Summary</div>', unsafe_allow_html=True)
     
     stats_data = []
     for db_name, df in dfs.items():
@@ -381,10 +471,11 @@ if 'benchmark_results' in st.session_state:
             'Database': db_name,
             'Mean (ms)': df['total_time'].mean(),
             'Median (ms)': df['total_time'].median(),
-            'Std Dev (ms)': df['total_time'].std(),
+            'Std Dev': df['total_time'].std(),
             'Min (ms)': df['total_time'].min(),
             'Max (ms)': df['total_time'].max(),
-            'Avg Docs Retrieved': df['num_docs'].mean()
+            'P95 (ms)': np.percentile(df['total_time'], 95),
+            'P99 (ms)': np.percentile(df['total_time'], 99)
         })
     
     stats_df = pd.DataFrame(stats_data)
@@ -393,82 +484,48 @@ if 'benchmark_results' in st.session_state:
         stats_df.style.format({
             'Mean (ms)': '{:.2f}',
             'Median (ms)': '{:.2f}',
-            'Std Dev (ms)': '{:.2f}',
+            'Std Dev': '{:.2f}',
             'Min (ms)': '{:.2f}',
             'Max (ms)': '{:.2f}',
-            'Avg Docs Retrieved': '{:.2f}'
-        }).background_gradient(subset=['Mean (ms)'], cmap='RdYlGn_r'),
-        use_container_width=True
+            'P95 (ms)': '{:.2f}',
+            'P99 (ms)': '{:.2f}'
+        }).background_gradient(subset=['Mean (ms)'], cmap='RdYlGn_r')
+        .background_gradient(subset=['P95 (ms)'], cmap='RdYlGn_r'),
+        use_container_width=True,
+        hide_index=True
     )
     
+    # Export
     st.markdown("---")
-    
-    # === RETRIEVAL VS LLM TIME COMPARISON ===
-    st.subheader("⚖️ Retrieval vs LLM Time Comparison")
-    
-    fig_comparison = go.Figure()
-    
-    x_labels = list(dfs.keys())
-    retrieval_times = [df['retrieval_time'].mean() for df in dfs.values()]
-    llm_times = [df['llm_time'].mean() for df in dfs.values()]
-    
-    fig_comparison.add_trace(go.Bar(
-        name='Retrieval Time',
-        x=x_labels,
-        y=retrieval_times,
-        marker_color='#2ecc71',
-        text=[f'{t:.2f} ms' for t in retrieval_times],
-        textposition='auto',
-    ))
-    
-    fig_comparison.add_trace(go.Bar(
-        name='LLM Time',
-        x=x_labels,
-        y=llm_times,
-        marker_color='#e74c3c',
-        text=[f'{t:.2f} ms' for t in llm_times],
-        textposition='auto',
-    ))
-    
-    fig_comparison.update_layout(
-        barmode='group',
-        title='Average Time Components by Database',
-        xaxis_title='Database',
-        yaxis_title='Time (ms)',
-        height=400
-    )
-    
-    st.plotly_chart(fig_comparison, use_container_width=True)
-    
-    st.markdown("---")
-    
-    # === DOWNLOAD RESULTS ===
-    st.subheader("📥 Export Results")
+    st.markdown('<div class="section-header">📥 Export Results</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
     
     with col1:
-        # Combined results
         csv_combined = combined_df.to_csv(index=False)
         st.download_button(
             label="📥 Download Combined Results (CSV)",
             data=csv_combined,
-            file_name=f"benchmark_combined_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            file_name=f"benchmark_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv",
             use_container_width=True
         )
     
     with col2:
-        # Statistics summary
         csv_stats = stats_df.to_csv(index=False)
         st.download_button(
-            label="📥 Download Statistics Summary (CSV)",
+            label="📊 Download Statistics (CSV)",
             data=csv_stats,
-            file_name=f"benchmark_stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            file_name=f"stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv",
             use_container_width=True
         )
 
 # Footer
-st.divider()
-st.caption("🎓 ITS RAG Benchmark System | Powered by Streamlit & Ollama")
+st.markdown("---")
+st.markdown("""
+<div style="text-align: center; padding: 20px; color: #94A3B8;">
+    <p>🎓 <strong>ITS RAG Benchmark System</strong> | Thesis Research Tool</p>
+    <p style="font-size: 0.875rem;">Powered by Streamlit, Plotly & Ollama</p>
+</div>
+""", unsafe_allow_html=True)
