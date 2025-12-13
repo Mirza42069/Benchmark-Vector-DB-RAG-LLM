@@ -14,6 +14,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
 import numpy as np
+import random
 
 # Vector databases
 from pinecone import Pinecone
@@ -123,10 +124,10 @@ TOP_K = int(os.getenv("TOP_K", "3"))
 st.markdown("""
 <div style="text-align: center; padding: 40px 0 20px 0;">
     <h1 style="font-size: 3rem; font-weight: 700; background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;">
-        📊 RAG System Benchmark
+        📊 Vector Database Benchmark
     </h1>
     <p style="color: #94A3B8; font-size: 1.125rem; font-weight: 400;">
-        The Effect of Vector Database Selection on Scalability and Response Speed
+        Benchmark Vector Database on Scalability and Response Speed
     </p>
     <div style="display: flex; justify-content: center; gap: 12px; margin-top: 16px;">
         <span class="db-badge badge-pinecone">Pinecone</span>
@@ -160,12 +161,12 @@ with st.sidebar:
     run_benchmark = st.button("🚀 Run Benchmark", type="primary", use_container_width=True)
 
 # Initialize vector stores
-@st.cache_resource
-def init_all_vector_stores(_test_pinecone, _test_postgresql, _test_chroma):
+@st.cache_resource(hash_funcs={bool: lambda x: x})
+def init_all_vector_stores(test_pinecone, test_postgresql, test_chroma):
     stores = {}
     embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
     
-    if _test_pinecone:
+    if test_pinecone:
         try:
             pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
             index = pc.Index(os.getenv("PINECONE_INDEX_NAME", "its-helpdesk-chatbot"))
@@ -174,7 +175,7 @@ def init_all_vector_stores(_test_pinecone, _test_postgresql, _test_chroma):
         except Exception as e:
             st.sidebar.error(f"❌ Pinecone: {str(e)[:30]}...")
     
-    if _test_postgresql:
+    if test_postgresql:
         try:
             connection_string = f"postgresql+psycopg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
             stores['PostgreSQL'] = PGVector(
@@ -187,7 +188,7 @@ def init_all_vector_stores(_test_pinecone, _test_postgresql, _test_chroma):
         except Exception as e:
             st.sidebar.error(f"❌ PostgreSQL: {str(e)[:30]}...")
     
-    if _test_chroma:
+    if test_chroma:
         try:
             client = chromadb.PersistentClient(path="chroma_db")
             stores['ChromaDB'] = Chroma(
@@ -241,6 +242,18 @@ def measure_performance(vector_store, query, llm, score_threshold, top_k):
             'error': str(e)
         }
 
+# Track current database configuration
+current_config = (test_pinecone, test_postgresql, test_chroma)
+
+# Clear old results if configuration changed
+if 'tested_config' in st.session_state:
+    if st.session_state['tested_config'] != current_config:
+        # Configuration changed, clear old results
+        if 'benchmark_results' in st.session_state:
+            del st.session_state['benchmark_results']
+        if 'dfs' in st.session_state:
+            del st.session_state['dfs']
+
 # Main benchmark
 if run_benchmark:
     with st.spinner("🔄 Initializing..."):
@@ -260,9 +273,13 @@ if run_benchmark:
     total_tests = len(vector_stores) * num_queries
     current_test = 0
     
+    # Randomize queries for varied results
+    randomized_queries = SAMPLE_QUERIES.copy()
+    random.shuffle(randomized_queries)
+    
     for db_name, vector_store in vector_stores.items():
         for i in range(num_queries):
-            query = SAMPLE_QUERIES[i % len(SAMPLE_QUERIES)]
+            query = randomized_queries[i % len(randomized_queries)]
             status_text.text(f"[{db_name}] Query {i+1}/{num_queries}...")
             
             metrics = measure_performance(vector_store, query, llm, score_threshold, top_k)
@@ -283,6 +300,7 @@ if run_benchmark:
     
     st.session_state['benchmark_results'] = combined_df
     st.session_state['dfs'] = dfs
+    st.session_state['tested_config'] = current_config  # Save tested configuration
 
 # Display Results
 if 'benchmark_results' in st.session_state:
@@ -326,28 +344,31 @@ if 'benchmark_results' in st.session_state:
     for db_name, df in dfs.items():
         color = COLORS.get(db_name, '#94A3B8')
         
-        # Smooth line with rolling average
-        rolling = df['total_time'].rolling(window=5, min_periods=1).mean()
+        # Filter out failed queries (where total_time == 0)
+        df_valid = df[df['total_time'] > 0]
         
-        # Area under curve
+        # Calculate average for this database
+        avg_time = df_valid['total_time'].mean()
+        
+        # Main response time line
         fig1.add_trace(go.Scatter(
-            x=df['query_num'],
-            y=df['total_time'],
-            fill='tozeroy',
-            fillcolor=f'rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.1)',
-            line=dict(width=0),
-            showlegend=False,
-            hoverinfo='skip'
+            x=df_valid['query_num'],
+            y=df_valid['total_time'],
+            mode='lines+markers',
+            name=f'{db_name}',
+            line=dict(color=color, width=2),
+            marker=dict(size=6, color=color),
+            hovertemplate=f'<b>{db_name}</b><br>Query: %{{x}}<br>Time: %{{y:.1f}}ms<extra></extra>'
         ))
         
-        # Main line
+        # Average line (red dashed)
         fig1.add_trace(go.Scatter(
-            x=df['query_num'],
-            y=rolling,
+            x=[df_valid['query_num'].min(), df_valid['query_num'].max()],
+            y=[avg_time, avg_time],
             mode='lines',
-            name=db_name,
-            line=dict(color=color, width=4),
-            hovertemplate=f'<b>{db_name}</b><br>Query: %{{x}}<br>Time: %{{y:.1f}}ms<extra></extra>'
+            name=f'Average ({avg_time:.0f}ms)',
+            line=dict(color='#EF4444', width=2, dash='dash'),
+            hovertemplate=f'<b>Average</b>: {avg_time:.1f}ms<extra></extra>'
         ))
     
     fig1.update_layout(
@@ -473,9 +494,7 @@ if 'benchmark_results' in st.session_state:
             'Median (ms)': df['total_time'].median(),
             'Std Dev': df['total_time'].std(),
             'Min (ms)': df['total_time'].min(),
-            'Max (ms)': df['total_time'].max(),
-            'P95 (ms)': np.percentile(df['total_time'], 95),
-            'P99 (ms)': np.percentile(df['total_time'], 99)
+            'Max (ms)': df['total_time'].max()
         })
     
     stats_df = pd.DataFrame(stats_data)
@@ -486,11 +505,8 @@ if 'benchmark_results' in st.session_state:
             'Median (ms)': '{:.2f}',
             'Std Dev': '{:.2f}',
             'Min (ms)': '{:.2f}',
-            'Max (ms)': '{:.2f}',
-            'P95 (ms)': '{:.2f}',
-            'P99 (ms)': '{:.2f}'
-        }).background_gradient(subset=['Mean (ms)'], cmap='RdYlGn_r')
-        .background_gradient(subset=['P95 (ms)'], cmap='RdYlGn_r'),
+            'Max (ms)': '{:.2f}'
+        }).background_gradient(subset=['Mean (ms)'], cmap='RdYlGn_r'),
         use_container_width=True,
         hide_index=True
     )
@@ -525,7 +541,7 @@ if 'benchmark_results' in st.session_state:
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; padding: 20px; color: #94A3B8;">
-    <p>🎓 <strong>ITS RAG Benchmark System</strong> | Thesis Research Tool</p>
+    <p>📊 <strong>Vector Database Benchmark</strong></p>
     <p style="font-size: 0.875rem;">Powered by Streamlit, Plotly & Ollama</p>
 </div>
 """, unsafe_allow_html=True)
