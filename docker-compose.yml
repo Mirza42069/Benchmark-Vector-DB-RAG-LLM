@@ -1,18 +1,24 @@
+# Docker Compose for RAG PostgreSQL with pgvector
+# SECURITY: Set DB_PASSWORD environment variable before running
+# Example: DB_PASSWORD=your_secure_password docker-compose up -d
 
 services:
   postgres:
     image: pgvector/pgvector:pg16
     container_name: rag_postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: raguser
-      POSTGRES_PASSWORD: 123
-      POSTGRES_DB: ragdb
+      POSTGRES_USER: ${DB_USER:-raguser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD environment variable is required}
+      POSTGRES_DB: ${DB_NAME:-ragdb}
     ports:
+      # NOTE: For production, consider removing this or using host networking
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U raguser -d ragdb"]
+      test:
+        ["CMD-SHELL", "pg_isready -U ${DB_USER:-raguser} -d ${DB_NAME:-ragdb}"]
       interval: 10s
       timeout: 5s
       retries: 5

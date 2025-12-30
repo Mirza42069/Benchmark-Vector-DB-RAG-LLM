@@ -7,6 +7,7 @@ For thesis: The Effect of Vector Database Selection on Scalability and Response 
 import streamlit as st
 import os
 import sys
+import logging
 from dotenv import load_dotenv
 import time
 import pandas as pd
@@ -15,6 +16,10 @@ import plotly.express as px
 from datetime import datetime
 import numpy as np
 import random
+
+# Add utils to path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from utils.security import build_pg_connection_string, sanitize_error_message
 
 # Vector databases
 from pinecone import Pinecone
@@ -28,8 +33,11 @@ from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_core.messages import HumanMessage, SystemMessage
 
 # Utils
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils.document_processor import SAMPLE_QUERIES
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -176,17 +184,28 @@ def init_all_vector_stores(test_pinecone, test_postgresql, test_chroma):
             st.sidebar.error(f"❌ Pinecone: {str(e)[:30]}...")
     
     if test_postgresql:
-        try:
-            connection_string = f"postgresql+psycopg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-            stores['PostgreSQL'] = PGVector(
-                embeddings=embeddings,
-                collection_name=os.getenv("COLLECTION_NAME", "its_guidebook"),
-                connection=connection_string,
-                use_jsonb=True,
-            )
-            st.sidebar.success("✅ PostgreSQL")
-        except Exception as e:
-            st.sidebar.error(f"❌ PostgreSQL: {str(e)[:30]}...")
+        db_password = os.getenv('DB_PASSWORD')
+        if not db_password:
+            st.sidebar.error("❌ PostgreSQL: DB_PASSWORD not set")
+        else:
+            try:
+                connection_string = build_pg_connection_string(
+                    user=os.getenv('DB_USER', 'raguser'),
+                    password=db_password,
+                    host=os.getenv('DB_HOST', 'localhost'),
+                    port=os.getenv('DB_PORT', '5432'),
+                    database=os.getenv('DB_NAME', 'ragdb')
+                )
+                stores['PostgreSQL'] = PGVector(
+                    embeddings=embeddings,
+                    collection_name=os.getenv("COLLECTION_NAME", "its_guidebook"),
+                    connection=connection_string,
+                    use_jsonb=True,
+                )
+                st.sidebar.success("✅ PostgreSQL")
+            except Exception as e:
+                logger.error(f"PostgreSQL connection error: {str(e)}")
+                st.sidebar.error("❌ PostgreSQL: Connection failed")
     
     if test_chroma:
         try:
@@ -276,9 +295,15 @@ if run_benchmark:
         if 'dfs' in st.session_state:
             del st.session_state['dfs']
     
-    for db_name, vector_store in vector_stores.items():
-        for i in range(num_queries):
-            query = randomized_queries[i % len(randomized_queries)]
+    # FAIR BENCHMARK: Interleave queries across databases
+    # Instead of testing all queries on DB1, then DB2, etc.
+    # We test query1 on all DBs, then query2 on all DBs, etc.
+    # This eliminates cold start bias and LLM caching advantages
+    
+    for i in range(num_queries):
+        query = randomized_queries[i % len(randomized_queries)]
+        
+        for db_name, vector_store in vector_stores.items():
             status_text.text(f"[{db_name}] Query {i+1}/{num_queries}...")
             
             metrics = measure_performance(vector_store, query, llm, score_threshold, top_k)

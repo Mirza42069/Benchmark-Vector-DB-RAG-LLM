@@ -24,20 +24,64 @@ print("\n" + "="*80)
 print("📚 CHROMADB DOCUMENT INGESTION")
 print("="*80)
 
+# Initialize embeddings FIRST (for fair benchmark comparison)
+print(f"\n🤖 Initializing embedding model: {EMBEDDING_MODEL}")
+embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
+
 # Initialize ChromaDB client
 print(f"\n🔌 Initializing ChromaDB...")
 client = chromadb.PersistentClient(path=CHROMA_PATH)
 
-# Delete existing collection if exists
+# Check if collection exists and has data
+try:
+    existing_collection = client.get_collection(name=COLLECTION_NAME)
+    existing_count = existing_collection.count()
+    
+    if existing_count > 0:
+        print(f"\n✅ Collection '{COLLECTION_NAME}' already exists with {existing_count} documents.")
+        print("   ⏭️  Skipping ingestion. Delete 'chroma_db' folder to re-ingest.")
+        
+        # Initialize vector store for testing
+        vector_store = Chroma(
+            client=client,
+            collection_name=COLLECTION_NAME,
+            embedding_function=embeddings,
+        )
+        
+        # Skip to test retrieval
+        print("\n" + "="*80)
+        print("🧪 Testing retrieval with sample queries...")
+        print("-" * 80)
+        
+        test_queries = [
+            ("🇮🇩", "Bagaimana cara mengubah password myITS Portal?"),
+            ("🇬🇧", "What documents do I need to bring when arriving in Surabaya?"),
+        ]
+        
+        for lang_flag, query in test_queries:
+            print(f"\n{lang_flag} Testing: \"{query}\"")
+            try:
+                results = vector_store.similarity_search(query, k=3)
+                if results:
+                    print(f"   ✅ Found {len(results)} relevant chunks")
+                else:
+                    print("   ❌ No results found!")
+            except Exception as e:
+                print(f"   ❌ Error: {str(e)}")
+        
+        print("\n" + "="*80)
+        print("✨ Ready to use! Run: streamlit run chatbot_chroma.py")
+        print("="*80)
+        sys.exit(0)
+except Exception:
+    pass  # Collection doesn't exist, proceed with ingestion
+
+# Delete existing collection if exists (fresh start)
 try:
     client.delete_collection(name=COLLECTION_NAME)
     print(f"   🗑️  Deleted existing collection '{COLLECTION_NAME}'")
 except:
     pass
-
-# Initialize embeddings
-print(f"\n🤖 Initializing embedding model: {EMBEDDING_MODEL}")
-embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
 
 # Initialize vector store
 vector_store = Chroma(
@@ -53,6 +97,20 @@ print(f"   • Collection: {COLLECTION_NAME}")
 print("\n" + "="*80)
 processor = DocumentProcessor()
 chunks = processor.process_documents()
+
+# Clean documents to remove NUL bytes (for consistency with other databases)
+print("\n🧹 Cleaning documents (removing NUL bytes)...")
+for chunk in chunks:
+    # Remove NUL bytes from content
+    chunk.page_content = chunk.page_content.replace('\x00', '')
+    
+    # Clean metadata strings
+    if chunk.metadata:
+        for key, value in chunk.metadata.items():
+            if isinstance(value, str):
+                chunk.metadata[key] = value.replace('\x00', '')
+
+print("   ✓ Documents cleaned")
 
 # Add documents to ChromaDB
 print("\n" + "="*80)

@@ -80,7 +80,7 @@ class DocumentProcessor:
             return "mixed"
     
     def split_documents(self, documents: List[Document]) -> List[Document]:
-        """Split documents into chunks based on detected language"""
+        """Split documents into chunks with unified settings for fair benchmarking"""
         print("\n✂️  Splitting documents into chunks...")
         
         # Detect language for each document
@@ -88,22 +88,16 @@ class DocumentProcessor:
             lang = self.detect_language(doc.page_content)
             doc.metadata['detected_language'] = lang
         
-        # Configure splitters
-        indonesian_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-            length_function=len,
-            separators=["\n\n", "\n", ". ", "。", " ", ""]
-        )
-        
-        english_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=800,
-            chunk_overlap=150,
+        # Unified splitter for all languages (fair benchmarking)
+        # Using consistent chunk size ensures equal comparison across databases
+        unified_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=900,      # Unified size for fair benchmarking
+            chunk_overlap=180,   # Unified overlap
             length_function=len,
             separators=["\n\n", "\n", ". ", " ", ""]
         )
         
-        # Separate by language
+        # Separate by language for statistics
         indonesian_docs = [doc for doc in documents if doc.metadata.get('detected_language') == 'id']
         english_docs = [doc for doc in documents if doc.metadata.get('detected_language') == 'en']
         mixed_docs = [doc for doc in documents if doc.metadata.get('detected_language') == 'mixed']
@@ -113,10 +107,10 @@ class DocumentProcessor:
         print(f"     🇬🇧 English: {len(english_docs)} pages")
         print(f"     ❓ Mixed: {len(mixed_docs)} pages")
         
-        # Split documents
-        chunks_indonesian = indonesian_splitter.split_documents(indonesian_docs) if indonesian_docs else []
-        chunks_english = english_splitter.split_documents(english_docs) if english_docs else []
-        chunks_mixed = english_splitter.split_documents(mixed_docs) if mixed_docs else []
+        # Split all documents with unified splitter
+        chunks_indonesian = unified_splitter.split_documents(indonesian_docs) if indonesian_docs else []
+        chunks_english = unified_splitter.split_documents(english_docs) if english_docs else []
+        chunks_mixed = unified_splitter.split_documents(mixed_docs) if mixed_docs else []
         
         all_chunks = chunks_indonesian + chunks_english + chunks_mixed
         
@@ -124,6 +118,7 @@ class DocumentProcessor:
         print(f"   🇮🇩 Indonesian chunks: {len(chunks_indonesian)}")
         print(f"   🇬🇧 English chunks: {len(chunks_english)}")
         print(f"   ❓ Mixed chunks: {len(chunks_mixed)}")
+        print(f"   📏 Chunk size: 900 chars | Overlap: 180 chars")
         
         return all_chunks
     
@@ -157,26 +152,44 @@ class DocumentProcessor:
 
 
 # Sample test queries for benchmarking
+# Indonesian queries: Based on "Panduan-Mahasiswa-Baru-DPTSI-2025" (IT services guide)
+# English queries: Based on "General-Guidebook-for-International-Students_July-2024"
 SAMPLE_QUERIES = [
-    # ========== 30 RELEVANT QUERIES (From documents) ==========
-    # Indonesian (15 queries)
-    "Dokumen apa yang harus dibawa saat tiba di Surabaya?",
-    "Berapa biaya administrasi ITS untuk mahasiswa internasional?",
-    "Di mana lokasi ITS Global Engagement Office?",
-    "Bagaimana cara mendaftar IMEI ponsel untuk tinggal lama di Indonesia?",
-    "Berapa biaya akomodasi per bulan di dekat ITS?",
+    # ========== 60 RELEVANT QUERIES ==========
+    
+    # --- Indonesian (30 queries) - DPTSI IT Services Guide ---
     "Apa itu myITS Portal dan bagaimana cara mengaksesnya?",
     "Bagaimana cara mengubah password myITS Portal?",
     "Aplikasi apa saja yang bisa diakses melalui myITS Portal?",
     "Bagaimana cara mengaktivasi Multi-Factor Authentication (MFA)?",
     "Apa saja layanan internet yang tersedia di kampus ITS?",
     "Bagaimana cara mengakses Office 365 untuk mahasiswa ITS?",
-    "Fakultas apa saja yang ada di ITS?",
-    "Berapa lama proses evaluasi penerimaan mahasiswa?",
-    "Apa saja jenis visa akademik yang tersedia untuk mahasiswa internasional?",
-    "Berapa denda jika tidak memiliki bukti tempat tinggal dalam 14 hari?",
-    
-    # English (15 queries)
+    "Bagaimana cara menyambungkan perangkat ke WiFi ITS?",
+    "Apa itu myITS SSO dan bagaimana cara menggunakannya?",
+    "Bagaimana cara mengakses email ITS?",
+    "Apa saja fitur yang tersedia di Microsoft Teams untuk mahasiswa?",
+    "Bagaimana cara mengunduh Microsoft Office gratis untuk mahasiswa?",
+    "Apa itu myITS StudentConnect?",
+    "Bagaimana cara mengakses SIAKAD ITS?",
+    "Apa saja layanan yang disediakan DPTSI untuk mahasiswa?",
+    "Bagaimana cara reset password akun ITS?",
+    "Apa itu ITS Single Sign-On?",
+    "Bagaimana cara mengakses Google Workspace ITS?",
+    "Apa saja aplikasi yang terintegrasi dengan myITS?",
+    "Bagaimana cara mengaktifkan akun mahasiswa baru di ITS?",
+    "Apa itu myITS dan apa bedanya dengan SIAKAD?",
+    "Bagaimana cara mendapatkan lisensi software gratis dari ITS?",
+    "Apa saja jaringan WiFi yang tersedia di kampus ITS?",
+    "Bagaimana cara menghubungi helpdesk DPTSI?",
+    "Apa itu VPN ITS dan bagaimana cara menggunakannya?",
+    "Bagaimana cara mengakses e-learning ITS?",
+    "Apa saja layanan cloud storage yang tersedia untuk mahasiswa?",
+    "Bagaimana cara menggunakan OneDrive ITS?",
+    "Apa itu ITS Repository dan bagaimana cara mengaksesnya?",
+    "Bagaimana cara mengakses jurnal online dari perpustakaan ITS?",
+    "Apa saja panduan keamanan akun yang disarankan DPTSI?",
+
+    # --- English (30 queries) - International Student Guidebook ---
     "What documents do I need to bring when arriving in Surabaya?",
     "How many types of academic VISA are available for international students?",
     "What is the ITS administration fee for international students?",
@@ -187,44 +200,24 @@ SAMPLE_QUERIES = [
     "What is the emergency hotline number in Surabaya?",
     "Which banks are available inside ITS campus?",
     "What are the nearest hospitals to ITS?",
-    "How do I access the MyITS system?",
     "What is the fine for not having proof of residency within 14 days?",
     "Which transportation apps can I use in Surabaya?",
     "What faculties are available at ITS?",
     "How long does the admission evaluation process take?",
-    
-    # ========== 30 IRRELEVANT QUERIES (Not in documents) ==========
-    # Indonesian (15 queries)
-    "Berapa IPK minimum untuk program pascasarjana?",
-    "Berapa biaya kuliah per semester untuk program sarjana?",
-    "Berapa jumlah beasiswa yang tersedia untuk mahasiswa internasional?",
-    "Bisakah Anda menjelaskan kurikulum program Teknik Mesin?",
-    "Berapa tingkat penerimaan mahasiswa internasional di ITS?",
-    "Bagaimana cara melamar magang di perusahaan di Surabaya?",
-    "Apa prospek kerja setelah lulus dari ITS?",
-    "Bagaimana peringkat ITS dibandingkan universitas Indonesia lainnya?",
-    "Bagaimana cara mendapatkan izin kerja setelah lulus?",
-    "Apa universitas terbaik di Jakarta?",
-    "Bagaimana cuaca di Bali saat musim panas?",
-    "Bagaimana cara mengkonversi kredit Indonesia ke kredit ECTS?",
-    "Kapan upacara wisuda tahun ini?",
-    "Siapa rektor ITS saat ini?",
-    "Apa persyaratan untuk pindah jurusan?",
-    
-    # English (15 queries)
-    "What is the average GPA requirement for graduate programs?",
-    "How much is the tuition fee per semester for undergraduate programs?",
-    "What scholarship amounts are available for international students?",
-    "Can you explain the Mechanical Engineering course curriculum?",
-    "What is the acceptance rate for international students at ITS?",
-    "How do I apply for internships at companies in Surabaya?",
-    "What are the job prospects after graduating from ITS?",
-    "How does ITS rank compared to other Indonesian universities?",
-    "How do I get a work permit after graduation?",
-    "What are the best universities in Jakarta?",
-    "What is the weather like in Bali during summer?",
-    "How do I convert Indonesian credits to ECTS credits?",
-    "When is the graduation ceremony this year?",
-    "Who is the current rector of ITS?",
-    "What are the requirements for changing majors?",
+    "How do I open a bank account in Indonesia?",
+    "What are the requirements for extending a study visa?",
+    "Who should I contact in case of an emergency?",
+    "Where can I find halal food near the campus?",
+    "What sports facilities are available for students?",
+    "What is the procedure for visa on arrival?",
+    "How do I get a KITAS (temporary stay permit)?",
+    "What are the living costs in Surabaya for students?",
+    "Where can I exchange foreign currency in Surabaya?",
+    "What is the process for airport pickup service?",
+    "How do I get Indonesian phone number (SIM card)?",
+    "What are the requirements for ITAS application?",
+    "Where is the immigration office for visa extension?",
+    "What public transportation is available in Surabaya?",
+    "How do I register at the local immigration office?",
+    "What health insurance options are available for international students?"
 ]

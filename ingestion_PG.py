@@ -11,6 +11,7 @@ from langchain_ollama import OllamaEmbeddings
 # Add utils to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils.document_processor import DocumentProcessor
+from utils.security import build_pg_connection_string, require_env
 
 load_dotenv()
 
@@ -19,18 +20,24 @@ DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "ragdb")
 DB_USER = os.getenv("DB_USER", "raguser")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "ragpassword")
+DB_PASSWORD = require_env("DB_PASSWORD")  # Required - no default for security
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "its_guidebook")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
 
-# Create connection string
-connection_string = f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# Create connection string with properly encoded credentials
+connection_string = build_pg_connection_string(
+    user=DB_USER,
+    password=DB_PASSWORD,
+    host=DB_HOST,
+    port=DB_PORT,
+    database=DB_NAME
+)
 
 print("\n" + "="*80)
 print("📚 POSTGRESQL DOCUMENT INGESTION")
 print("="*80)
 
-# Initialize embeddings
+# Initialize embeddings FIRST (for fair benchmark comparison)
 print(f"\n🤖 Initializing embedding model: {EMBEDDING_MODEL}")
 embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
 
@@ -51,7 +58,43 @@ except Exception as e:
     print("\n💡 Did you run setup_postgresql.py first?")
     sys.exit(1)
 
-# Clear existing collection (optional)
+# Check if collection already has data
+print(f"\n🔍 Checking existing data...")
+try:
+    existing_results = vector_store.similarity_search("test", k=1)
+    if existing_results:
+        print(f"   ✅ Collection '{COLLECTION_NAME}' already has data.")
+        print("   ⏭️  Skipping ingestion. Use --force or clear database to re-ingest.")
+        
+        # Skip to test retrieval
+        print("\n" + "="*80)
+        print("🧪 Testing retrieval with sample queries...")
+        print("-" * 80)
+        
+        test_queries = [
+            ("🇮🇩", "Bagaimana cara mengubah password myITS Portal?"),
+            ("🇬🇧", "What documents do I need to bring when arriving in Surabaya?"),
+        ]
+        
+        for lang_flag, query in test_queries:
+            print(f"\n{lang_flag} Testing: \"{query}\"")
+            try:
+                results = vector_store.similarity_search(query, k=3)
+                if results:
+                    print(f"   ✅ Found {len(results)} relevant chunks")
+                else:
+                    print("   ❌ No results found!")
+            except Exception as e:
+                print(f"   ❌ Error: {str(e)}")
+        
+        print("\n" + "="*80)
+        print("✨ Ready to use! Run: streamlit run chatbot_postgresql.py")
+        print("="*80)
+        sys.exit(0)
+except Exception:
+    pass  # No data exists, proceed with ingestion
+
+# Clear existing collection for fresh start
 print(f"\n🗑️  Clearing existing collection '{COLLECTION_NAME}'...")
 try:
     # Drop and recreate collection

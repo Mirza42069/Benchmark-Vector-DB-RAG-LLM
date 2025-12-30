@@ -31,6 +31,10 @@ if not PINECONE_API_KEY:
     print("Please add your Pinecone API key to .env file")
     sys.exit(1)
 
+# Initialize embeddings FIRST (for fair benchmark comparison)
+print(f"\n🤖 Initializing embedding model: {EMBEDDING_MODEL}")
+embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
+
 # Initialize Pinecone
 print(f"\n🔌 Connecting to Pinecone...")
 pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -58,17 +62,50 @@ else:
 
 index = pc.Index(INDEX_NAME)
 
-# Clear existing vectors (optional)
+# Check if index already has data
+stats = index.describe_index_stats()
+existing_count = stats.total_vector_count
+
+if existing_count > 0:
+    print(f"\n✅ Index '{INDEX_NAME}' already has {existing_count} vectors.")
+    print("   ⏭️  Skipping ingestion. Delete index in Pinecone console to re-ingest.")
+    
+    # Initialize vector store for testing
+    vector_store = PineconeVectorStore(index=index, embedding=embeddings)
+    
+    # Skip to test retrieval
+    print("\n" + "="*80)
+    print("🧪 Testing retrieval with sample queries...")
+    print("-" * 80)
+    
+    test_queries = [
+        ("🇮🇩", "Bagaimana cara mengubah password myITS Portal?"),
+        ("🇬🇧", "What documents do I need to bring when arriving in Surabaya?"),
+    ]
+    
+    for lang_flag, query in test_queries:
+        print(f"\n{lang_flag} Testing: \"{query}\"")
+        try:
+            results = vector_store.similarity_search(query, k=3)
+            if results:
+                print(f"   ✅ Found {len(results)} relevant chunks")
+            else:
+                print("   ❌ No results found!")
+        except Exception as e:
+            print(f"   ❌ Error: {str(e)}")
+    
+    print("\n" + "="*80)
+    print("✨ Ready to use! Run: streamlit run chatbot_pinecone.py")
+    print("="*80)
+    sys.exit(0)
+
+# Clear existing vectors for fresh start
 print("\n🗑️  Clearing existing vectors...")
 try:
     index.delete(delete_all=True)
     print("   ✓ Cleared existing data")
 except:
     print("   ℹ️  No existing data to clear")
-
-# Initialize embeddings
-print(f"\n🤖 Initializing embedding model: {EMBEDDING_MODEL}")
-embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
 
 # Initialize vector store
 vector_store = PineconeVectorStore(index=index, embedding=embeddings)
@@ -77,6 +114,20 @@ vector_store = PineconeVectorStore(index=index, embedding=embeddings)
 print("\n" + "="*80)
 processor = DocumentProcessor()
 chunks = processor.process_documents()
+
+# Clean documents to remove NUL bytes (for consistency with other databases)
+print("\n🧹 Cleaning documents (removing NUL bytes)...")
+for chunk in chunks:
+    # Remove NUL bytes from content
+    chunk.page_content = chunk.page_content.replace('\x00', '')
+    
+    # Clean metadata strings
+    if chunk.metadata:
+        for key, value in chunk.metadata.items():
+            if isinstance(value, str):
+                chunk.metadata[key] = value.replace('\x00', '')
+
+print("   ✓ Documents cleaned")
 
 # Add documents to Pinecone
 print("\n" + "="*80)

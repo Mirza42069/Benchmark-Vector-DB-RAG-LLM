@@ -5,9 +5,19 @@ Pinecone vs PostgreSQL+pgvector vs ChromaDB
 
 import streamlit as st
 import os
+import sys
+import logging
 from dotenv import load_dotenv
 import time
 
+# Add utils to path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from utils.security import (
+    sanitize_query,
+    escape_html,
+    build_pg_connection_string,
+    sanitize_error_message
+)
 
 # Vector databases
 from pinecone import Pinecone
@@ -19,6 +29,10 @@ from langchain_chroma import Chroma
 # LangChain
 from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_core.messages import HumanMessage, SystemMessage
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -43,10 +57,13 @@ DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "ragdb")
 DB_USER = os.getenv("DB_USER", "raguser")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "123")
+DB_PASSWORD = os.getenv("DB_PASSWORD")  # No default - must be set in .env
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "its_guidebook")
 
 CHROMA_PATH = "chroma_db"
+
+# Maximum query length for input validation
+MAX_QUERY_LENGTH = 1000
 
 # Initialize session state
 if "messages" not in st.session_state:
@@ -126,13 +143,23 @@ def get_pinecone_store(embeddings):
         index = pc.Index(INDEX_NAME)
         return PineconeVectorStore(index=index, embedding=embeddings)
     except Exception as e:
-        st.sidebar.error(f"❌ Pinecone: {str(e)[:50]}")
+        logger.error(f"Pinecone connection error: {str(e)}")
+        st.sidebar.error("❌ Pinecone: Connection failed")
         return None
 
 def get_postgresql_store(embeddings):
     """Initialize PostgreSQL"""
+    if not DB_PASSWORD:
+        st.sidebar.error("❌ PostgreSQL: DB_PASSWORD not set")
+        return None
     try:
-        connection_string = f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        connection_string = build_pg_connection_string(
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT,
+            database=DB_NAME
+        )
         return PGVector(
             embeddings=embeddings,
             collection_name=COLLECTION_NAME,
@@ -140,7 +167,8 @@ def get_postgresql_store(embeddings):
             use_jsonb=True,
         )
     except Exception as e:
-        st.sidebar.error(f"❌ PostgreSQL: {str(e)[:50]}")
+        logger.error(f"PostgreSQL connection error: {str(e)}")
+        st.sidebar.error("❌ PostgreSQL: Connection failed")
         return None
 
 def get_chroma_store(embeddings):
@@ -153,10 +181,14 @@ def get_chroma_store(embeddings):
             embedding_function=embeddings,
         )
     except Exception as e:
-        st.sidebar.error(f"❌ ChromaDB: {str(e)[:50]}")
+        logger.error(f"ChromaDB connection error: {str(e)}")
+        st.sidebar.error("❌ ChromaDB: Connection failed")
         return None
 
 def query_database(db_name, vector_store, query, score_threshold, top_k, llm):
+    """Query a single database and return results"""
+    # Sanitize the query input
+    query = sanitize_query(query, MAX_QUERY_LENGTH)
     """Query a single database and return results"""
     result = {
         "db_name": db_name,
@@ -290,9 +322,15 @@ for msg in st.session_state.messages:
 
 # Chat input
 if prompt := st.chat_input("Ask me anything about ITS..."):
-    # Display user message
+    # Sanitize and validate user input
+    prompt = sanitize_query(prompt, MAX_QUERY_LENGTH)
+    if not prompt:
+        st.warning("Please enter a valid question.")
+        st.stop()
+    
+    # Display user message (escaped for safety)
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(escape_html(prompt))
     
     st.markdown("---")
     
