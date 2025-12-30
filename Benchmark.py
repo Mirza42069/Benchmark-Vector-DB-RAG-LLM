@@ -197,15 +197,51 @@ with config_col3:
 if not any([test_pinecone, test_postgresql, test_chroma]):
     st.error("Select at least one database")
 
-# Centered Buttons
+# Centered Button
 st.markdown("<br>", unsafe_allow_html=True)
-_, col_btn1, col_btn2, _ = st.columns([2.5, 1, 1, 2.5])
+_, col_btn1, _ = st.columns([3, 1, 3])
 with col_btn1:
     run_benchmark = st.button("Run Benchmark", type="primary", use_container_width=True)
-with col_btn2:
-    if st.button("View Documents", use_container_width=True):
-        st.switch_page("pages/documents.py")
+
+# Documents Section - same width as button
+_, col_doc, _ = st.columns([3, 1, 3])
+with col_doc:
+    with st.expander("View Documents"):
+        documents = [
+            {
+                "name": "General Guidebook for International Students",
+                "file": "General-Guidebook-for-International-Students_July-2024.pdf",
+                "language": "English",
+                "date": "July 2024"
+            },
+            {
+                "name": "Panduan Mahasiswa Baru DPTSI 2025",
+                "file": "Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf",
+                "language": "Indonesian",
+                "date": "2025"
+            }
+        ]
+        
+        for i, doc in enumerate(documents):
+            st.markdown(f"**{doc['name']}**")
+            st.caption(f"{doc['language']} • {doc['date']}")
+            
+            file_path = os.path.join("documents", doc['file'])
+            if os.path.exists(file_path):
+                with open(file_path, "rb") as f:
+                    st.download_button(
+                        label="Download",
+                        data=f.read(),
+                        file_name=doc['file'],
+                        mime="application/pdf",
+                        use_container_width=True,
+                        key=f"doc_{i}"
+                    )
+            if i == 0:
+                st.divider()
+
 st.markdown("<br>", unsafe_allow_html=True)
+
 
 # Initialize vector stores
 @st.cache_resource(hash_funcs={bool: lambda x: x})
@@ -642,25 +678,86 @@ if 'benchmark_results' in st.session_state:
     st.markdown("---")
     st.markdown('<div class="section-header">Export Results</div>', unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
+    # Prepare comprehensive export data
+    export_metadata = {
+        "benchmark_date": datetime.now().isoformat(),
+        "llm_model": CHAT_MODEL,
+        "embedding_model": EMBEDDING_MODEL,
+        "num_queries": len(combined_df) // len(dfs),
+        "top_k": top_k,
+        "databases_tested": list(dfs.keys())
+    }
+    
+    # Calculate detailed statistics for each database
+    detailed_stats = []
+    for db_name, df in dfs.items():
+        detailed_stats.append({
+            "database": db_name,
+            "total_queries": len(df),
+            "successful_queries": df['success'].sum(),
+            "mean_total_ms": round(df['total_time'].mean(), 2),
+            "median_total_ms": round(df['total_time'].median(), 2),
+            "std_total_ms": round(df['total_time'].std(), 2),
+            "min_total_ms": round(df['total_time'].min(), 2),
+            "max_total_ms": round(df['total_time'].max(), 2),
+            "mean_retrieval_ms": round(df['retrieval_time'].mean(), 2),
+            "median_retrieval_ms": round(df['retrieval_time'].median(), 2),
+            "std_retrieval_ms": round(df['retrieval_time'].std(), 2),
+            "mean_llm_ms": round(df['llm_time'].mean(), 2),
+            "median_llm_ms": round(df['llm_time'].median(), 2),
+            "std_llm_ms": round(df['llm_time'].std(), 2),
+        })
+    
+    detailed_stats_df = pd.DataFrame(detailed_stats)
+    
+    # Create comprehensive JSON for static site
+    import json
+    
+    export_json = {
+        "metadata": export_metadata,
+        "summary": detailed_stats,
+        "winner": {
+            "database": winner,
+            "avg_retrieval_ms": round(winner_time, 2),
+            "speed_improvement_percent": round(speed_improvement, 1)
+        },
+        "raw_results": combined_df.to_dict(orient='records'),
+        "per_database": {
+            db_name: df.to_dict(orient='records') 
+            for db_name, df in dfs.items()
+        }
+    }
+    
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         csv_combined = combined_df.to_csv(index=False)
         st.download_button(
-            label="Download Combined Results (CSV)",
+            label="Raw Results (CSV)",
             data=csv_combined,
-            file_name=f"benchmark_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            file_name=f"benchmark_raw_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv",
             use_container_width=True
         )
     
     with col2:
-        csv_stats = stats_df.to_csv(index=False)
+        csv_stats = detailed_stats_df.to_csv(index=False)
         st.download_button(
-            label="Download Statistics (CSV)",
+            label="Statistics (CSV)",
             data=csv_stats,
-            file_name=f"stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            file_name=f"benchmark_stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv",
             use_container_width=True
         )
+    
+    with col3:
+        json_data = json.dumps(export_json, indent=2, default=str)
+        st.download_button(
+            label="Full Export (JSON)",
+            data=json_data,
+            file_name=f"benchmark_full_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            use_container_width=True
+        )
+
 
