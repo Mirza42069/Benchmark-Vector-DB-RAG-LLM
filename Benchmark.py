@@ -42,82 +42,98 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # ============================================
-# MODERN COLOR PALETTE & STYLING
+# SHADCN-STYLE COLOR PALETTE
 # ============================================
 COLORS = {
-    'Pinecone': '#6366F1',      # Indigo
+    'Pinecone': '#8B5CF6',      # Violet
     'PostgreSQL': '#10B981',    # Emerald
     'ChromaDB': '#F59E0B',      # Amber
-    'retrieval': '#3B82F6',     # Blue
-    'llm': '#EC4899',           # Pink
-    'background': '#0F172A',
-    'card': '#1E293B',
-    'text': '#F8FAFC',
-    'muted': '#94A3B8',
+    'primary': '#6366F1',       # Indigo
+    'success': '#10B981',       # Emerald
+    'muted': '#64748B',         # Slate
+    'background': '#09090B',    # Zinc-950
+    'card': '#18181B',          # Zinc-900
+    'border': '#27272A',        # Zinc-800
+    'text': '#FAFAFA',          # Zinc-50
 }
 
 # Page configuration
 st.set_page_config(
-    page_title="RAG Benchmark System",
-    page_icon="📊",
+    page_title="Vector Database Benchmark",
+    page_icon="▣",
     layout="wide"
 )
 
-# Custom CSS
+# Shadcn-style CSS
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     
     .stApp {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background-color: #09090B;
     }
     
+    /* Shadcn Card Style */
     .metric-card {
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        border-radius: 12px;
-        padding: 20px;
+        background: #18181B;
+        border: 1px solid #27272A;
+        border-radius: 8px;
+        padding: 24px;
         text-align: center;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     
     .metric-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        font-size: 2.25rem;
+        font-weight: 600;
+        color: #FAFAFA;
         margin: 8px 0;
+        letter-spacing: -0.025em;
     }
     
     .metric-label {
-        color: #94A3B8;
+        color: #71717A;
         font-size: 0.875rem;
         font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
     }
     
+    /* Database Badges - Distinct Colors */
     .db-badge {
         display: inline-block;
-        padding: 6px 16px;
-        border-radius: 20px;
-        font-size: 0.875rem;
-        font-weight: 600;
-        margin: 4px;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
     }
     
-    .badge-pinecone { background: rgba(99, 102, 241, 0.2); color: #6366F1; border: 2px solid #6366F1; }
-    .badge-postgresql { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 2px solid #10B981; }
-    .badge-chromadb { background: rgba(245, 158, 11, 0.2); color: #F59E0B; border: 2px solid #F59E0B; }
+    .badge-pinecone { background: rgba(139, 92, 246, 0.15); color: #A78BFA; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .badge-postgresql { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-chromadb { background: rgba(245, 158, 11, 0.15); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.3); }
     
+    /* Section Headers - Shadcn Style */
     .section-header {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: #F8FAFC;
-        margin: 40px 0 20px 0;
-        padding-bottom: 12px;
-        border-bottom: 3px solid #6366F1;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #FAFAFA;
+        margin: 32px 0 16px 0;
+        letter-spacing: -0.025em;
+    }
+    
+    /* Button Styling */
+    .stButton > button {
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.15s ease;
+    }
+    
+    /* Input/Slider Styling */
+    .stSlider > div > div {
+        background-color: #27272A;
+    }
+    
+    /* Divider */
+    hr {
+        border-color: #27272A;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -130,42 +146,66 @@ TOP_K = int(os.getenv("TOP_K", "3"))
 
 # Title
 st.markdown("""
-<div style="text-align: center; padding: 40px 0 20px 0;">
-    <h1 style="font-size: 3rem; font-weight: 700; background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;">
-        📊 Vector Database Benchmark
+<div style="text-align: center; padding: 32px 0 24px 0;">
+    <h1 style="font-size: 2rem; font-weight: 600; color: #FAFAFA; margin-bottom: 4px; letter-spacing: -0.025em;">
+        Vector Database Benchmark
     </h1>
-    <p style="color: #94A3B8; font-size: 1.125rem; font-weight: 400;">
-        Benchmark Vector Database on Scalability and Response Speed
+    <p style="color: #71717A; font-size: 0.875rem; font-weight: 400;">
+        Comparing Scalability and Response Speed
     </p>
-    <div style="display: flex; justify-content: center; gap: 12px; margin-top: 16px;">
-        <span class="db-badge badge-pinecone">Pinecone</span>
-        <span class="db-badge badge-postgresql">PostgreSQL + pgvector</span>
-        <span class="db-badge badge-chromadb">ChromaDB</span>
-    </div>
 </div>
 """, unsafe_allow_html=True)
 
-# Sidebar
-with st.sidebar:
-    st.markdown("## ⚙️ Configuration")
-    
-    st.markdown("### 📂 Databases")
-    test_pinecone = st.checkbox("Pinecone", value=True)
-    test_postgresql = st.checkbox("PostgreSQL + pgvector", value=True)
-    test_chroma = st.checkbox("ChromaDB", value=True)
-    
-    if not any([test_pinecone, test_postgresql, test_chroma]):
-        st.error("⚠️ Select at least one database!")
-    
-    st.divider()
-    
-    st.markdown("### 🔧 Parameters")
-    num_queries = st.slider("Test Queries", 10, 100, 60, 10)
-    top_k = st.slider("Documents per Query", 1, 10, TOP_K)
-    
-    st.divider()
-    
-    run_benchmark = st.button("🚀 Run Benchmark", type="primary", use_container_width=True)
+# Header Configuration - Centered horizontal layout
+_, config_col1, config_col2, config_col3, _ = st.columns([0.5, 1, 2, 2, 0.5])
+
+# LLM Model
+with config_col1:
+    st.markdown(f"""
+    <div style="
+        background: #18181B;
+        border: 1px solid #27272A;
+        border-radius: 6px;
+        padding: 12px 16px;
+        text-align: center;
+    ">
+        <div style="color: #71717A; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">LLM</div>
+        <div style="color: #FAFAFA; font-weight: 500; font-size: 0.9rem;">{CHAT_MODEL}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# Databases
+with config_col2:
+    st.markdown('<p style="color: #71717A; font-size: 0.75rem; margin-bottom: 8px;">Databases</p>', unsafe_allow_html=True)
+    db_col1, db_col2, db_col3 = st.columns(3)
+    with db_col1:
+        test_pinecone = st.checkbox("Pinecone", value=True)
+    with db_col2:
+        test_postgresql = st.checkbox("PostgreSQL", value=True)
+    with db_col3:
+        test_chroma = st.checkbox("ChromaDB", value=True)
+
+# Parameters
+with config_col3:
+    st.markdown('<p style="color: #71717A; font-size: 0.75rem; margin-bottom: 8px;">Parameters</p>', unsafe_allow_html=True)
+    param_col1, param_col2 = st.columns(2)
+    with param_col1:
+        num_queries = st.selectbox("Queries", [10, 20, 30, 40, 50, 60], index=5, label_visibility="collapsed")
+    with param_col2:
+        top_k = st.selectbox("Top K", [1, 2, 3, 4, 5], index=2, label_visibility="collapsed")
+
+if not any([test_pinecone, test_postgresql, test_chroma]):
+    st.error("Select at least one database")
+
+# Centered Buttons
+st.markdown("<br>", unsafe_allow_html=True)
+_, col_btn1, col_btn2, _ = st.columns([2.5, 1, 1, 2.5])
+with col_btn1:
+    run_benchmark = st.button("Run Benchmark", type="primary", use_container_width=True)
+with col_btn2:
+    if st.button("View Documents", use_container_width=True):
+        st.switch_page("pages/documents.py")
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Initialize vector stores
 @st.cache_resource(hash_funcs={bool: lambda x: x})
@@ -178,14 +218,13 @@ def init_all_vector_stores(test_pinecone, test_postgresql, test_chroma):
             pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
             index = pc.Index(os.getenv("PINECONE_INDEX_NAME", "its-helpdesk-chatbot"))
             stores['Pinecone'] = PineconeVectorStore(index=index, embedding=embeddings)
-            st.sidebar.success("✅ Pinecone")
         except Exception as e:
-            st.sidebar.error(f"❌ Pinecone: {str(e)[:30]}...")
+            logger.error(f"Pinecone connection error: {str(e)}")
     
     if test_postgresql:
         db_password = os.getenv('DB_PASSWORD')
         if not db_password:
-            st.sidebar.error("❌ PostgreSQL: DB_PASSWORD not set")
+            logger.error("PostgreSQL: DB_PASSWORD not set")
         else:
             try:
                 connection_string = build_pg_connection_string(
@@ -201,10 +240,8 @@ def init_all_vector_stores(test_pinecone, test_postgresql, test_chroma):
                     connection=connection_string,
                     use_jsonb=True,
                 )
-                st.sidebar.success("✅ PostgreSQL")
             except Exception as e:
                 logger.error(f"PostgreSQL connection error: {str(e)}")
-                st.sidebar.error("❌ PostgreSQL: Connection failed")
     
     if test_chroma:
         try:
@@ -214,9 +251,8 @@ def init_all_vector_stores(test_pinecone, test_postgresql, test_chroma):
                 collection_name="its_guidebook",
                 embedding_function=embeddings,
             )
-            st.sidebar.success("✅ ChromaDB")
         except Exception as e:
-            st.sidebar.error(f"❌ ChromaDB: {str(e)[:30]}...")
+            logger.error(f"ChromaDB connection error: {str(e)}")
     
     return stores
 
@@ -262,15 +298,15 @@ def measure_performance(vector_store, query, llm, top_k):
 
 # Main benchmark
 if run_benchmark:
-    with st.spinner("🔄 Initializing..."):
+    with st.spinner("Initializing..."):
         vector_stores = init_all_vector_stores(test_pinecone, test_postgresql, test_chroma)
     
     if not vector_stores:
-        st.error("❌ No vector stores initialized!")
+        st.error("No vector stores initialized")
         st.stop()
     
     llm = ChatOllama(model=CHAT_MODEL, temperature=0.1)
-    st.success(f"✅ Initialized {len(vector_stores)} database(s)")
+    st.success(f"Initialized {len(vector_stores)} database(s)")
     
     progress_bar = st.progress(0)
     status_text = st.empty()
@@ -314,7 +350,7 @@ if run_benchmark:
             current_test += 1
             progress_bar.progress(current_test / total_tests)
     
-    status_text.text("✅ Completed!")
+    status_text.text("Completed")
     
     dfs = {db_name: pd.DataFrame(results) for db_name, results in all_results.items()}
     combined_df = pd.concat(dfs.values(), ignore_index=True)
@@ -354,7 +390,7 @@ if 'benchmark_results' in st.session_state:
         margin: 20px 0 30px 0;
         text-align: center;
     ">
-        <div style="font-size: 3rem; margin-bottom: 8px;">🏆</div>
+        <div style="font-size: 2rem; margin-bottom: 8px; color: #10B981;">WINNER</div>
         <div style="font-size: 1.5rem; font-weight: 700; color: {winner_color}; margin-bottom: 4px;">
             {winner} Wins!
         </div>
@@ -368,7 +404,7 @@ if 'benchmark_results' in st.session_state:
     """, unsafe_allow_html=True)
     
     # Summary Cards
-    st.markdown('<div class="section-header">📊 Performance Summary</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Performance Summary</div>', unsafe_allow_html=True)
     
     cols = st.columns(len(dfs))
     for idx, (db_name, df) in enumerate(dfs.items()):
@@ -395,7 +431,7 @@ if 'benchmark_results' in st.session_state:
     st.markdown("<br><br>", unsafe_allow_html=True)
     
     # Chart 1: Scalability with Rolling Average
-    st.markdown('<div class="section-header">📈 Scalability Analysis</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Scalability Analysis</div>', unsafe_allow_html=True)
     
     fig1 = go.Figure()
     
@@ -469,7 +505,7 @@ if 'benchmark_results' in st.session_state:
     st.plotly_chart(fig1, use_container_width=True)
     
     # Chart 2: Stacked Bar Comparison
-    st.markdown('<div class="section-header">⚡ Speed Breakdown</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Speed Breakdown</div>', unsafe_allow_html=True)
     
     fig2 = go.Figure()
     
@@ -481,7 +517,7 @@ if 'benchmark_results' in st.session_state:
         x=db_names,
         y=[dfs[db]['retrieval_time'].mean() for db in db_names],
         marker=dict(
-            color=COLORS['retrieval'],
+            color=COLORS['primary'],
             line=dict(color='rgba(255,255,255,0.2)', width=2)
         ),
         text=[f"{dfs[db]['retrieval_time'].mean():.1f}ms" for db in db_names],
@@ -496,7 +532,7 @@ if 'benchmark_results' in st.session_state:
         x=db_names,
         y=[dfs[db]['llm_time'].mean() for db in db_names],
         marker=dict(
-            color=COLORS['llm'],
+            color=COLORS['muted'],
             line=dict(color='rgba(255,255,255,0.2)', width=2)
         ),
         text=[f"{dfs[db]['llm_time'].mean():.1f}ms" for db in db_names],
@@ -542,7 +578,7 @@ if 'benchmark_results' in st.session_state:
     st.plotly_chart(fig2, use_container_width=True)
     
     # Statistics Table
-    st.markdown('<div class="section-header">📋 Statistical Summary</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Statistical Summary</div>', unsafe_allow_html=True)
     
     stats_data = []
     for db_name, df in dfs.items():
@@ -569,16 +605,49 @@ if 'benchmark_results' in st.session_state:
         hide_index=True
     )
     
-    # Export
+    # Query Scoreboard - Show all queries sorted by fastest
     st.markdown("---")
-    st.markdown('<div class="section-header">📥 Export Results</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="section-header">Query Scoreboard</div>', unsafe_allow_html=True)
+    
+    # Create scoreboard dataframe - sorted by fastest (default)
+    scoreboard_df = combined_df[['query_num', 'database', 'query', 'retrieval_time', 'llm_time', 'total_time']].copy()
+    scoreboard_df = scoreboard_df.rename(columns={
+        'query_num': '#',
+        'database': 'Database',
+        'query': 'Query',
+        'retrieval_time': 'Retrieval (ms)',
+        'llm_time': 'LLM (ms)',
+        'total_time': 'Total (ms)'
+    })
+    
+    # Sort by fastest (ascending total time)
+    scoreboard_df = scoreboard_df.sort_values('Total (ms)', ascending=True)
+    
+    # Truncate query text for display
+    scoreboard_df['Query'] = scoreboard_df['Query'].apply(lambda x: x[:40] + '...' if len(x) > 40 else x)
+    
+    st.dataframe(
+        scoreboard_df.style.format({
+            'Retrieval (ms)': '{:.1f}',
+            'LLM (ms)': '{:.1f}',
+            'Total (ms)': '{:.1f}'
+        }).background_gradient(subset=['Total (ms)'], cmap='RdYlGn_r'),
+        use_container_width=True,
+        hide_index=True,
+        height=400
+    )
+    
+    # Export - At the bottom
+    st.markdown("---")
+    st.markdown('<div class="section-header">Export Results</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
     
     with col1:
         csv_combined = combined_df.to_csv(index=False)
         st.download_button(
-            label="📥 Download Combined Results (CSV)",
+            label="Download Combined Results (CSV)",
             data=csv_combined,
             file_name=f"benchmark_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv",
@@ -588,18 +657,10 @@ if 'benchmark_results' in st.session_state:
     with col2:
         csv_stats = stats_df.to_csv(index=False)
         st.download_button(
-            label="📊 Download Statistics (CSV)",
+            label="Download Statistics (CSV)",
             data=csv_stats,
             file_name=f"stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv",
             use_container_width=True
         )
 
-# Footer
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; padding: 20px; color: #94A3B8;">
-    <p>📊 <strong>Vector Database Benchmark</strong></p>
-    <p style="font-size: 0.875rem;">Powered by Streamlit, Plotly & Ollama</p>
-</div>
-""", unsafe_allow_html=True)
