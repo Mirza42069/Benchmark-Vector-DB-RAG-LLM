@@ -161,7 +161,6 @@ with st.sidebar:
     
     st.markdown("### 🔧 Parameters")
     num_queries = st.slider("Test Queries", 10, 100, 60, 10)
-    score_threshold = st.slider("Similarity Threshold", 0.0, 1.0, SCORE_THRESHOLD, 0.05)
     top_k = st.slider("Documents per Query", 1, 10, TOP_K)
     
     st.divider()
@@ -221,14 +220,12 @@ def init_all_vector_stores(test_pinecone, test_postgresql, test_chroma):
     
     return stores
 
-def measure_performance(vector_store, query, llm, score_threshold, top_k):
+def measure_performance(vector_store, query, llm, top_k):
     try:
         start = time.time()
-        retriever = vector_store.as_retriever(
-            search_type="similarity_score_threshold",
-            search_kwargs={"k": top_k, "score_threshold": score_threshold}
-        )
-        docs = retriever.invoke(query)
+        # Use similarity search (without threshold) for fair comparison
+        # All databases will return exactly top_k documents
+        docs = vector_store.similarity_search(query, k=top_k)
         retrieval_time = time.time() - start
         
         if docs and len(docs) > 0:
@@ -306,7 +303,7 @@ if run_benchmark:
         for db_name, vector_store in vector_stores.items():
             status_text.text(f"[{db_name}] Query {i+1}/{num_queries}...")
             
-            metrics = measure_performance(vector_store, query, llm, score_threshold, top_k)
+            metrics = measure_performance(vector_store, query, llm, top_k)
             all_results[db_name].append({
                 'query_num': i + 1,
                 'query': query,
@@ -332,6 +329,43 @@ if 'benchmark_results' in st.session_state:
     dfs = st.session_state['dfs']
     
     st.markdown("---")
+    
+    # 🏆 Winner Banner - Based on RETRIEVAL TIME (database performance only)
+    avg_retrieval_times = {db_name: df['retrieval_time'].mean() for db_name, df in dfs.items()}
+    winner = min(avg_retrieval_times, key=avg_retrieval_times.get)
+    winner_time = avg_retrieval_times[winner]
+    
+    # Calculate how much faster winner is compared to others
+    other_dbs = {k: v for k, v in avg_retrieval_times.items() if k != winner}
+    if other_dbs:
+        slowest = max(other_dbs.values())
+        speed_improvement = ((slowest - winner_time) / slowest) * 100
+    else:
+        speed_improvement = 0
+    
+    winner_color = COLORS.get(winner, '#10B981')
+    
+    st.markdown(f"""
+    <div style="
+        background: linear-gradient(135deg, {winner_color}22 0%, {winner_color}11 100%);
+        border: 2px solid {winner_color};
+        border-radius: 16px;
+        padding: 24px 32px;
+        margin: 20px 0 30px 0;
+        text-align: center;
+    ">
+        <div style="font-size: 3rem; margin-bottom: 8px;">🏆</div>
+        <div style="font-size: 1.5rem; font-weight: 700; color: {winner_color}; margin-bottom: 4px;">
+            {winner} Wins!
+        </div>
+        <div style="font-size: 2.5rem; font-weight: 800; color: #F8FAFC; margin: 8px 0;">
+            {winner_time:.1f}ms Retrieval
+        </div>
+        <div style="font-size: 1rem; color: #94A3B8;">
+            {speed_improvement:.1f}% faster than the slowest database
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Summary Cards
     st.markdown('<div class="section-header">📊 Performance Summary</div>', unsafe_allow_html=True)
