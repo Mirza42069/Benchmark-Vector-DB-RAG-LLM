@@ -34,6 +34,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 # Utils
 from utils.document_processor import SAMPLE_QUERIES
+from utils.ground_truth import GROUND_TRUTH, calculate_retrieval_metrics
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -331,6 +332,67 @@ def measure_performance(vector_store, query, llm, top_k):
         }
 
 
+def measure_scalability(vector_store, queries, top_k_levels):
+    """
+    Measure response time at different Top-K levels (simulating document volume scaling)
+    """
+    results = []
+    for k in top_k_levels:
+        level_times = []
+        for query in queries[:10]:  # Use subset for speed
+            try:
+                start = time.time()
+                docs = vector_store.similarity_search(query, k=k)
+                retrieval_time = (time.time() - start) * 1000
+                level_times.append(retrieval_time)
+            except:
+                pass
+        
+        if level_times:
+            results.append({
+                'top_k': k,
+                'avg_time': np.mean(level_times),
+                'std_time': np.std(level_times),
+                'min_time': np.min(level_times),
+                'max_time': np.max(level_times)
+            })
+    
+    return results
+
+
+def measure_retrieval_quality(vector_store, queries, top_k):
+    """
+    Measure Precision, Recall, and F1-Score for each query using ground truth
+    """
+    results = []
+    for query in queries:
+        if query not in GROUND_TRUTH:
+            continue
+        
+        try:
+            docs = vector_store.similarity_search(query, k=top_k)
+            metrics = calculate_retrieval_metrics(docs, query, top_k)
+            results.append({
+                'query': query,
+                'precision': metrics['precision'],
+                'recall': metrics['recall'],
+                'f1_score': metrics['f1_score'],
+                'relevant_retrieved': metrics.get('relevant_retrieved', 0),
+                'total_retrieved': metrics.get('total_retrieved', 0)
+            })
+        except Exception as e:
+            results.append({
+                'query': query,
+                'precision': 0,
+                'recall': 0,
+                'f1_score': 0,
+                'error': str(e)
+            })
+    
+    return results
+
+
+
 
 # Main benchmark
 if run_benchmark:
@@ -386,14 +448,90 @@ if run_benchmark:
             current_test += 1
             progress_bar.progress(current_test / total_tests)
     
-    status_text.text("Completed")
+    status_text.text("Speed test completed, running scalability test...")
     
     dfs = {db_name: pd.DataFrame(results) for db_name, results in all_results.items()}
     combined_df = pd.concat(dfs.values(), ignore_index=True)
     
     st.session_state['benchmark_results'] = combined_df
     st.session_state['dfs'] = dfs
-    st.session_state['tested_config'] = current_config  # Save tested configuration
+    st.session_state['tested_config'] = current_config
+    
+    # ========== PHASE 2: SCALABILITY TEST ==========
+    top_k_levels = [1, 2, 3, 5, 8, 10, 15, 20]
+    scalability_results = {}
+    
+    for idx, (db_name, vector_store) in enumerate(vector_stores.items()):
+        status_text.text(f"Scalability Test [{db_name}]...")
+        scalability_results[db_name] = measure_scalability(vector_store, randomized_queries, top_k_levels)
+        progress_bar.progress((total_tests + idx + 1) / (total_tests + len(vector_stores) * 2))
+    
+    st.session_state['scalability_results'] = scalability_results
+    
+    # ========== PHASE 3: RETRIEVAL QUALITY TEST ==========
+    status_text.text("Running Retrieval Quality Test...")
+    
+    quality_results = {}
+    
+    for idx, (db_name, vector_store) in enumerate(vector_stores.items()):
+        status_text.text(f"Quality Test [{db_name}]...")
+        quality_results[db_name] = measure_retrieval_quality(vector_store, randomized_queries[:num_queries], top_k)
+        progress_bar.progress((total_tests + len(vector_stores) + idx + 1) / (total_tests + len(vector_stores) * 2))
+    
+    st.session_state['quality_results'] = quality_results
+    
+    # ========== AUTO-SAVE JSON ==========
+    status_text.text("Saving results...")
+    
+    import json
+    
+    avg_retrieval_times = {db_name: df['retrieval_time'].mean() for db_name, df in dfs.items()}
+    winner = min(avg_retrieval_times, key=avg_retrieval_times.get)
+    winner_time = avg_retrieval_times[winner]
+    other_dbs = {k: v for k, v in avg_retrieval_times.items() if k != winner}
+    speed_improvement = ((max(other_dbs.values()) - winner_time) / max(other_dbs.values()) * 100) if other_dbs else 0
+    
+    export_data = {
+        'metadata': {
+            'benchmark_date': datetime.now().isoformat(),
+            'llm_model': CHAT_MODEL,
+            'embedding_model': EMBEDDING_MODEL,
+            'num_queries': num_queries,
+            'top_k': top_k,
+            'databases_tested': list(vector_stores.keys())
+        },
+        'speed_test': {
+            'winner': {'database': winner, 'avg_retrieval_ms': round(winner_time, 2), 'speed_improvement_percent': round(speed_improvement, 1)},
+            'summary': [
+                {
+                    'database': db_name,
+                    'mean_total_ms': round(df['total_time'].mean(), 2),
+                    'median_total_ms': round(df['total_time'].median(), 2),
+                    'std_total_ms': round(df['total_time'].std(), 2),
+                    'min_total_ms': round(df['total_time'].min(), 2),
+                    'max_total_ms': round(df['total_time'].max(), 2),
+                    'mean_retrieval_ms': round(df['retrieval_time'].mean(), 2),
+                    'mean_llm_ms': round(df['llm_time'].mean(), 2),
+                } for db_name, df in dfs.items()
+            ],
+            'raw_results': combined_df.to_dict(orient='records')
+        },
+        'scalability_test': scalability_results,
+        'retrieval_quality': {
+            db_name: {
+                'avg_precision': round(np.mean([r['precision'] for r in results]), 4),
+                'avg_recall': round(np.mean([r['recall'] for r in results]), 4),
+                'avg_f1_score': round(np.mean([r['f1_score'] for r in results]), 4),
+                'per_query': results
+            } for db_name, results in quality_results.items()
+        }
+    }
+    # Store export data in session for download button
+    st.session_state['export_data'] = export_data
+    
+    status_text.text("Completed!")
+    progress_bar.progress(1.0)
+
 
 # Display Results
 if 'benchmark_results' in st.session_state:
@@ -673,91 +811,141 @@ if 'benchmark_results' in st.session_state:
         hide_index=True,
         height=400
     )
+
+if 'scalability_results' in st.session_state:
+    scalability_results = st.session_state['scalability_results']
     
-    # Export - At the bottom
     st.markdown("---")
-    st.markdown('<div class="section-header">Export Results</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Scalability Analysis</div>', unsafe_allow_html=True)
     
-    # Prepare comprehensive export data
-    export_metadata = {
-        "benchmark_date": datetime.now().isoformat(),
-        "llm_model": CHAT_MODEL,
-        "embedding_model": EMBEDDING_MODEL,
-        "num_queries": len(combined_df) // len(dfs),
-        "top_k": top_k,
-        "databases_tested": list(dfs.keys())
-    }
+    fig_scale = go.Figure()
     
-    # Calculate detailed statistics for each database
-    detailed_stats = []
-    for db_name, df in dfs.items():
-        detailed_stats.append({
-            "database": db_name,
-            "total_queries": len(df),
-            "successful_queries": df['success'].sum(),
-            "mean_total_ms": round(df['total_time'].mean(), 2),
-            "median_total_ms": round(df['total_time'].median(), 2),
-            "std_total_ms": round(df['total_time'].std(), 2),
-            "min_total_ms": round(df['total_time'].min(), 2),
-            "max_total_ms": round(df['total_time'].max(), 2),
-            "mean_retrieval_ms": round(df['retrieval_time'].mean(), 2),
-            "median_retrieval_ms": round(df['retrieval_time'].median(), 2),
-            "std_retrieval_ms": round(df['retrieval_time'].std(), 2),
-            "mean_llm_ms": round(df['llm_time'].mean(), 2),
-            "median_llm_ms": round(df['llm_time'].median(), 2),
-            "std_llm_ms": round(df['llm_time'].std(), 2),
-        })
+    for db_name, results in scalability_results.items():
+        color = COLORS.get(db_name, '#94A3B8')
+        x_vals = [r['top_k'] for r in results]
+        y_vals = [r['avg_time'] for r in results]
+        
+        fig_scale.add_trace(go.Scatter(
+            x=x_vals, y=y_vals, mode='lines+markers', name=db_name,
+            line=dict(color=color, width=3), marker=dict(size=10, color=color),
+            hovertemplate=f'<b>{db_name}</b><br>Top-K: %{{x}}<br>Avg Time: %{{y:.2f}}ms<extra></extra>'
+        ))
     
-    detailed_stats_df = pd.DataFrame(detailed_stats)
+    fig_scale.update_layout(
+        title=dict(text='<b>Response Time vs Retrieval Volume (Top-K)</b>', font=dict(size=24, color='#F8FAFC')),
+        xaxis=dict(title='Top-K (Documents Retrieved)', gridcolor='rgba(148, 163, 184, 0.1)', title_font=dict(size=14, color='#94A3B8'), tickfont=dict(size=12, color='#94A3B8')),
+        yaxis=dict(title='Average Response Time (ms)', gridcolor='rgba(148, 163, 184, 0.1)', title_font=dict(size=14, color='#94A3B8'), tickfont=dict(size=12, color='#94A3B8')),
+        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(family='Inter', color='#F8FAFC'), height=500,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, bgcolor='rgba(30, 41, 59, 0.8)', bordercolor='rgba(148, 163, 184, 0.3)', borderwidth=1, font=dict(size=13))
+    )
     
-    # Create comprehensive JSON for static site
+    st.plotly_chart(fig_scale, use_container_width=True)
+    
+    # Scalability Statistics
+    st.markdown('<div class="section-header">Scalability Statistics</div>', unsafe_allow_html=True)
+    
+    scale_stats = []
+    for db_name, results in scalability_results.items():
+        if results:
+            avg_times = [r['avg_time'] for r in results]
+            scale_stats.append({
+                'Database': db_name,
+                'Min Avg (ms)': min(avg_times),
+                'Max Avg (ms)': max(avg_times),
+                'Growth Rate': f"{((max(avg_times) - min(avg_times)) / min(avg_times) * 100):.1f}%"
+            })
+    
+    scale_df = pd.DataFrame(scale_stats)
+    st.dataframe(scale_df.style.format({'Min Avg (ms)': '{:.2f}', 'Max Avg (ms)': '{:.2f}'}), use_container_width=True, hide_index=True)
+
+# ========== RETRIEVAL QUALITY RESULTS ==========
+if 'quality_results' in st.session_state:
+    quality_results = st.session_state['quality_results']
+    
+    st.markdown("---")
+    st.markdown('<div class="section-header">Retrieval Quality Metrics</div>', unsafe_allow_html=True)
+    
+    # Summary Cards
+    cols = st.columns(len(quality_results))
+    for idx, (db_name, results) in enumerate(quality_results.items()):
+        if results:
+            avg_precision = np.mean([r['precision'] for r in results])
+            avg_recall = np.mean([r['recall'] for r in results])
+            avg_f1 = np.mean([r['f1_score'] for r in results])
+            
+            badge_class = f'badge-{db_name.lower().replace(" ", "").replace("+", "")}'
+            with cols[idx]:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <span class="db-badge {badge_class}">{db_name}</span>
+                    <div class="metric-value">{avg_f1:.2%}</div>
+                    <div class="metric-label">F1-Score</div>
+                    <div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div style="color: #22C55E; font-weight: 600; font-size: 1.25rem;">{avg_precision:.2%}</div>
+                            <div style="color: #94A3B8; font-size: 0.75rem;">Precision</div>
+                        </div>
+                        <div>
+                            <div style="color: #3B82F6; font-weight: 600; font-size: 1.25rem;">{avg_recall:.2%}</div>
+                            <div style="color: #94A3B8; font-size: 0.75rem;">Recall</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    # Quality Bar Chart
+    fig_quality = go.Figure()
+    
+    db_names = list(quality_results.keys())
+    precisions = [np.mean([r['precision'] for r in quality_results[db]]) for db in db_names]
+    recalls = [np.mean([r['recall'] for r in quality_results[db]]) for db in db_names]
+    f1_scores = [np.mean([r['f1_score'] for r in quality_results[db]]) for db in db_names]
+    
+    fig_quality.add_trace(go.Bar(name='Precision', x=db_names, y=precisions, marker=dict(color='#22C55E'), text=[f"{p:.1%}" for p in precisions], textposition='outside', textfont=dict(size=12, color='#22C55E')))
+    fig_quality.add_trace(go.Bar(name='Recall', x=db_names, y=recalls, marker=dict(color='#3B82F6'), text=[f"{r:.1%}" for r in recalls], textposition='outside', textfont=dict(size=12, color='#3B82F6')))
+    fig_quality.add_trace(go.Bar(name='F1-Score', x=db_names, y=f1_scores, marker=dict(color='#F59E0B'), text=[f"{f:.1%}" for f in f1_scores], textposition='outside', textfont=dict(size=12, color='#F59E0B')))
+    
+    fig_quality.update_layout(
+        title=dict(text='<b>Precision, Recall & F1-Score Comparison</b>', font=dict(size=24, color='#F8FAFC')),
+        barmode='group', xaxis=dict(title='', tickfont=dict(size=13, color='#F8FAFC')),
+        yaxis=dict(title='Score', range=[0, 1.1], gridcolor='rgba(148, 163, 184, 0.1)', title_font=dict(size=14, color='#94A3B8'), tickfont=dict(size=12, color='#94A3B8')),
+        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(family='Inter', color='#F8FAFC'), height=450, bargap=0.15,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, bgcolor='rgba(30, 41, 59, 0.8)', bordercolor='rgba(148, 163, 184, 0.3)', borderwidth=1, font=dict(size=13))
+    )
+    
+    st.plotly_chart(fig_quality, use_container_width=True)
+    
+    # Quality Statistics
+    st.markdown('<div class="section-header">Quality Statistics</div>', unsafe_allow_html=True)
+    
+    quality_stats = []
+    for db_name, results in quality_results.items():
+        if results:
+            quality_stats.append({
+                'Database': db_name,
+                'Avg Precision': np.mean([r['precision'] for r in results]),
+                'Avg Recall': np.mean([r['recall'] for r in results]),
+                'Avg F1-Score': np.mean([r['f1_score'] for r in results]),
+                'Queries Tested': len(results)
+            })
+    
+    quality_df = pd.DataFrame(quality_stats)
+    st.dataframe(
+        quality_df.style.format({'Avg Precision': '{:.2%}', 'Avg Recall': '{:.2%}', 'Avg F1-Score': '{:.2%}'}),
+        use_container_width=True, hide_index=True
+    )
+
+# Download JSON Button
+if 'export_data' in st.session_state:
+    st.markdown("---")
     import json
-    
-    export_json = {
-        "metadata": export_metadata,
-        "summary": detailed_stats,
-        "winner": {
-            "database": winner,
-            "avg_retrieval_ms": round(winner_time, 2),
-            "speed_improvement_percent": round(speed_improvement, 1)
-        },
-        "raw_results": combined_df.to_dict(orient='records'),
-        "per_database": {
-            db_name: df.to_dict(orient='records') 
-            for db_name, df in dfs.items()
-        }
-    }
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        csv_combined = combined_df.to_csv(index=False)
-        st.download_button(
-            label="Raw Results (CSV)",
-            data=csv_combined,
-            file_name=f"benchmark_raw_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-    
-    with col2:
-        csv_stats = detailed_stats_df.to_csv(index=False)
-        st.download_button(
-            label="Statistics (CSV)",
-            data=csv_stats,
-            file_name=f"benchmark_stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-    
-    with col3:
-        json_data = json.dumps(export_json, indent=2, default=str)
-        st.download_button(
-            label="Full Export (JSON)",
-            data=json_data,
-            file_name=f"benchmark_full_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-            mime="application/json",
-            use_container_width=True
-        )
-
-
+    json_data = json.dumps(st.session_state['export_data'], indent=2, default=str)
+    st.download_button(
+        label="Download Results (JSON)",
+        data=json_data,
+        file_name=f"benchmark_full_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+        mime="application/json",
+        use_container_width=True
+    )
