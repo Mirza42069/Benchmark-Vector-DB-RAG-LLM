@@ -19,7 +19,7 @@ load_dotenv()
 # Configuration
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "its-helpdesk-chatbot")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3")
 
 print("\n" + "="*80)
 print("📚 PINECONE DOCUMENT INGESTION")
@@ -44,10 +44,10 @@ existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
 
 if INDEX_NAME not in existing_indexes:
     print(f"\n🆕 Creating new index: {INDEX_NAME}")
-    print(f"   Embedding dimension: 1024 (mxbai-embed-large)")
+    print(f"   Embedding dimension: 1024 (bge-m3)")
     pc.create_index(
         name=INDEX_NAME,
-        dimension=1024,  # mxbai-embed-large produces 1024-dimensional vectors
+        dimension=1024,  # bge-m3 produces 1024-dimensional vectors
         metric="cosine",
         spec=ServerlessSpec(cloud="aws", region="us-east-1"),
     )

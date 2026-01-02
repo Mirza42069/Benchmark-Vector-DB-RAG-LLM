@@ -44,7 +44,7 @@ st.set_page_config(
 )
 
 # Configuration
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3")
 CHAT_MODEL = os.getenv("CHAT_MODEL", "qwen3:8b")
 SCORE_THRESHOLD = float(os.getenv("SCORE_THRESHOLD", "0.75"))
 TOP_K = int(os.getenv("TOP_K", "3"))

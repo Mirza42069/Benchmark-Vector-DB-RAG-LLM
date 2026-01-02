@@ -18,7 +18,7 @@ load_dotenv()
 # Configuration
 CHROMA_PATH = "chroma_db"
 COLLECTION_NAME = "its_guidebook"
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3")
 
 print("\n" + "="*80)
 print("📚 CHROMADB DOCUMENT INGESTION")
