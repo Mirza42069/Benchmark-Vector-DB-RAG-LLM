@@ -19,7 +19,7 @@ load_dotenv()
 # Configuration
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "its-helpdesk-chatbot")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
 
 print("\n" + "="*80)
 print("📚 PINECONE DOCUMENT INGESTION")
@@ -67,37 +67,8 @@ stats = index.describe_index_stats()
 existing_count = stats.total_vector_count
 
 if existing_count > 0:
-    print(f"\n✅ Index '{INDEX_NAME}' already has {existing_count} vectors.")
-    print("   ⏭️  Skipping ingestion. Delete index in Pinecone console to re-ingest.")
-    
-    # Initialize vector store for testing
-    vector_store = PineconeVectorStore(index=index, embedding=embeddings)
-    
-    # Skip to test retrieval
-    print("\n" + "="*80)
-    print("🧪 Testing retrieval with sample queries...")
-    print("-" * 80)
-    
-    test_queries = [
-        ("🇮🇩", "Bagaimana cara mengubah password myITS Portal?"),
-        ("🇬🇧", "What documents do I need to bring when arriving in Surabaya?"),
-    ]
-    
-    for lang_flag, query in test_queries:
-        print(f"\n{lang_flag} Testing: \"{query}\"")
-        try:
-            results = vector_store.similarity_search(query, k=3)
-            if results:
-                print(f"   ✅ Found {len(results)} relevant chunks")
-            else:
-                print("   ❌ No results found!")
-        except Exception as e:
-            print(f"   ❌ Error: {str(e)}")
-    
-    print("\n" + "="*80)
-    print("✨ Ready to use! Run: streamlit run chatbot_pinecone.py")
-    print("="*80)
-    sys.exit(0)
+    print(f"\n⚠️  Index '{INDEX_NAME}' has {existing_count} existing vectors.")
+    print("   🗑️  Clearing for fresh ingestion...")
 
 # Clear existing vectors for fresh start
 print("\n🗑️  Clearing existing vectors...")

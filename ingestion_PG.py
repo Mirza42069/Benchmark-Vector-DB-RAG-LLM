@@ -22,7 +22,7 @@ DB_NAME = os.getenv("DB_NAME", "ragdb")
 DB_USER = os.getenv("DB_USER", "raguser")
 DB_PASSWORD = require_env("DB_PASSWORD")  # Required - no default for security
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "its_guidebook")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
 
 # Create connection string with properly encoded credentials
 connection_string = build_pg_connection_string(

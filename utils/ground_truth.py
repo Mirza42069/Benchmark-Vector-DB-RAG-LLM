@@ -8,248 +8,248 @@ Maps queries to their expected relevant documents and keywords
 # - relevant_sources: PDF files that should contain the answer
 # - keywords: Key terms that must appear in relevant results
 GROUND_TRUTH = {
-    # ========== INDONESIAN QUERIES (DPTSI Guide) ==========
-    "Apa itu myITS Portal dan bagaimana cara mengaksesnya?": {
+    # ========== INDONESIAN QUERIES (Document 1: Panduan-Mahasiswa-Baru-DPTSI-2025) ==========
+    "Apa itu myITS Portal dan apa fungsinya?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["myITS", "portal", "akses", "login"]
+        "keywords": ["myITS", "portal", "fungsi", "layanan"]
     },
-    "Bagaimana cara mengubah password myITS Portal?": {
+    "Bagaimana langkah-langkah login pertama kali ke myITS Portal?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["password", "ubah", "ganti", "myITS"]
+        "keywords": ["login", "myITS", "portal", "pertama"]
     },
-    "Aplikasi apa saja yang bisa diakses melalui myITS Portal?": {
+    "Apa format default email mahasiswa baru ITS?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["aplikasi", "myITS", "portal", "layanan"]
+        "keywords": ["email", "format", "mahasiswa", "its.ac.id"]
     },
-    "Bagaimana cara mengaktivasi Multi-Factor Authentication (MFA)?": {
+    "Bagaimana cara melakukan aktivasi Multi-Factor Authentication (MFA)?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["MFA", "Multi-Factor", "Authentication", "autentikasi"]
+        "keywords": ["MFA", "Multi-Factor", "Authentication", "aktivasi"]
     },
-    "Apa saja layanan internet yang tersedia di kampus ITS?": {
+    "Apa syarat pembuatan password baru untuk akun myITS?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["internet", "WiFi", "jaringan", "kampus"]
+        "keywords": ["password", "syarat", "myITS", "akun"]
     },
-    "Bagaimana cara mengakses Office 365 untuk mahasiswa ITS?": {
+    "Bagaimana cara verifikasi email alternatif dan nomor ponsel di myITS?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["Office", "365", "Microsoft", "mahasiswa"]
+        "keywords": ["verifikasi", "email", "ponsel", "myITS"]
     },
-    "Bagaimana cara menyambungkan perangkat ke WiFi ITS?": {
+    "Apa fungsi dari aplikasi SIAKAD (Sistem Informasi Akademik)?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["WiFi", "ITS", "sambung", "koneksi"]
+        "keywords": ["SIAKAD", "akademik", "sistem", "informasi"]
     },
-    "Apa itu myITS SSO dan bagaimana cara menggunakannya?": {
+    "Bagaimana cara orang tua mahasiswa mengakses myITS Wali?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["SSO", "Single Sign-On", "myITS", "login"]
+        "keywords": ["myITS Wali", "orang tua", "akses", "wali"]
     },
-    "Bagaimana cara mengakses email ITS?": {
+    "Apa itu myITS Classroom dan bagaimana cara mengaksesnya?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["email", "ITS", "mail", "akses"]
+        "keywords": ["myITS Classroom", "classroom", "akses", "kuliah"]
     },
-    "Apa saja fitur yang tersedia di Microsoft Teams untuk mahasiswa?": {
+    "Bagaimana prosedur presensi kuliah menggunakan myITS Presensi?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["Teams", "Microsoft", "fitur", "mahasiswa"]
+        "keywords": ["presensi", "myITS Presensi", "kuliah", "absensi"]
     },
-    "Bagaimana cara mengunduh Microsoft Office gratis untuk mahasiswa?": {
+    "Apa saja layanan internet yang tersedia di lingkungan kampus ITS?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["Office", "Microsoft", "unduh", "gratis"]
+        "keywords": ["internet", "WiFi", "kampus", "jaringan"]
     },
-    "Apa itu myITS StudentConnect?": {
+    "Bagaimana cara menghubungkan perangkat ke jaringan Eduroam?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["StudentConnect", "myITS", "mahasiswa"]
+        "keywords": ["Eduroam", "jaringan", "WiFi", "koneksi"]
     },
-    "Bagaimana cara mengakses SIAKAD ITS?": {
+    "Aplikasi apa yang wajib diunduh untuk keperluan MFA?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["SIAKAD", "akademik", "akses"]
+        "keywords": ["MFA", "aplikasi", "Microsoft Authenticator", "unduh"]
     },
-    "Apa saja layanan yang disediakan DPTSI untuk mahasiswa?": {
+    "Bagaimana cara menginstal Office 365 versi desktop untuk mahasiswa?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["DPTSI", "layanan", "mahasiswa"]
+        "keywords": ["Office 365", "instal", "desktop", "Microsoft"]
     },
-    "Bagaimana cara reset password akun ITS?": {
+    "Langkah-langkah aktivasi lisensi Office 365 menggunakan akun ITS.": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["reset", "password", "akun"]
+        "keywords": ["Office 365", "lisensi", "aktivasi", "ITS"]
     },
-    "Apa itu ITS Single Sign-On?": {
+    "Bagaimana cara mengakses aplikasi Zoom berlisensi dari ITS?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["Single Sign-On", "SSO", "ITS"]
+        "keywords": ["Zoom", "lisensi", "akses", "ITS"]
     },
-    "Bagaimana cara mengakses Google Workspace ITS?": {
+    "Apa kegunaan layanan VPN ITS bagi mahasiswa?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["Google", "Workspace", "ITS"]
+        "keywords": ["VPN", "ITS", "layanan", "akses"]
     },
-    "Apa saja aplikasi yang terintegrasi dengan myITS?": {
+    "Bagaimana cara setting OpenVPN Connect Client untuk VPN ITS?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["aplikasi", "myITS", "integrasi"]
+        "keywords": ["OpenVPN", "VPN", "setting", "client"]
     },
-    "Bagaimana cara mengaktifkan akun mahasiswa baru di ITS?": {
+    "Apa saja fasilitas yang disediakan oleh Perpustakaan ITS?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["akun", "mahasiswa", "baru", "aktivasi"]
+        "keywords": ["perpustakaan", "fasilitas", "ITS", "layanan"]
     },
-    "Apa itu myITS dan apa bedanya dengan SIAKAD?": {
+    "Bagaimana cara mahasiswa melakukan peminjaman buku secara online (OBOR)?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["myITS", "SIAKAD", "beda", "perbedaan"]
+        "keywords": ["OBOR", "peminjaman", "buku", "online"]
     },
-    "Bagaimana cara mendapatkan lisensi software gratis dari ITS?": {
+    "Apa peran Direktorat Riset dan Pengabdian kepada Masyarakat (DRPM) bagi mahasiswa?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["lisensi", "software", "gratis"]
+        "keywords": ["DRPM", "riset", "penelitian", "pengabdian"]
     },
-    "Apa saja jaringan WiFi yang tersedia di kampus ITS?": {
+    "Apa itu SIMPel ITS dan kegunaannya untuk penelitian?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["WiFi", "jaringan", "kampus"]
+        "keywords": ["SIMPel", "penelitian", "riset", "ITS"]
     },
-    "Bagaimana cara menghubungi helpdesk DPTSI?": {
+    "Di mana mahasiswa bisa mendapatkan informasi layanan untuk penyandang disabilitas?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["helpdesk", "DPTSI", "hubungi", "kontak"]
+        "keywords": ["disabilitas", "layanan", "informasi", "mahasiswa"]
     },
-    "Apa itu VPN ITS dan bagaimana cara menggunakannya?": {
+    "Apa saja provider seluler yang tidak bisa digunakan untuk verifikasi nomor ponsel di myITS?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["VPN", "ITS", "akses"]
+        "keywords": ["provider", "seluler", "verifikasi", "ponsel"]
     },
-    "Bagaimana cara mengakses e-learning ITS?": {
+    "Ke mana mahasiswa harus menghubungi jika mengalami kendala layanan IT (Service Desk)?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["e-learning", "learning", "ITS"]
+        "keywords": ["Service Desk", "helpdesk", "kendala", "layanan"]
     },
-    "Apa saja layanan cloud storage yang tersedia untuk mahasiswa?": {
+    "Bagaimana cara mengubah password melalui myITS Account?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["cloud", "storage", "penyimpanan"]
+        "keywords": ["password", "ubah", "myITS Account", "ganti"]
     },
-    "Bagaimana cara menggunakan OneDrive ITS?": {
+    "Apa password default yang digunakan saat login pertama kali?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["OneDrive", "ITS", "storage"]
+        "keywords": ["password", "default", "login", "pertama"]
     },
-    "Apa itu ITS Repository dan bagaimana cara mengaksesnya?": {
+    "Bagaimana cara mengakses email ITS menggunakan Microsoft Outlook?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["Repository", "ITS", "akses"]
+        "keywords": ["email", "Outlook", "Microsoft", "ITS"]
     },
-    "Bagaimana cara mengakses jurnal online dari perpustakaan ITS?": {
+    "Apa saja aplikasi yang tergabung dalam layanan Office 365 untuk mahasiswa?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["jurnal", "perpustakaan", "online"]
+        "keywords": ["Office 365", "aplikasi", "Microsoft", "layanan"]
     },
-    "Apa saja panduan keamanan akun yang disarankan DPTSI?": {
+    "Bagaimana cara mengecek status verifikasi email alternatif?": {
         "relevant_sources": ["Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf"],
-        "keywords": ["keamanan", "akun", "DPTSI", "panduan"]
+        "keywords": ["verifikasi", "email", "status", "alternatif"]
     },
-    
-    # ========== ENGLISH QUERIES (International Student Guide) ==========
-    "What documents do I need to bring when arriving in Surabaya?": {
+
+    # ========== ENGLISH QUERIES (Document 2: General-Guidebook-for-International-Students) ==========
+    "What items are on the arrival checklist for international students?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["documents", "arrival", "Surabaya", "bring"]
+        "keywords": ["checklist", "arrival", "international", "students"]
     },
-    "How many types of academic VISA are available for international students?": {
+    "How do I register my phone's IMEI in Indonesia?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["VISA", "academic", "types", "international"]
+        "keywords": ["IMEI", "register", "phone", "Indonesia"]
     },
-    "What is the ITS administration fee for international students?": {
+    "What is the tax calculation for registering a phone worth more than $500?": {
+        "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
+        "keywords": ["tax", "phone", "500", "IMEI"]
+    },
+    "What documents are required to apply for a Bachelor Degree (E30B) Visa?": {
+        "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
+        "keywords": ["E30B", "visa", "Bachelor", "documents"]
+    },
+    "How much is the ITS administration fee for international students?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
         "keywords": ["fee", "administration", "international", "ITS"]
     },
-    "Where is the ITS Global Engagement Office located?": {
+    "What is the procedure for obtaining a Police Notification Report (STM)?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["Global Engagement", "office", "location", "ITS"]
+        "keywords": ["STM", "police", "notification", "report"]
     },
-    "How do I register my phone's IMEI for a long stay in Indonesia?": {
+    "How do I get a Proof of Residency (SKTT) and what is the deadline?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["IMEI", "phone", "register", "Indonesia"]
+        "keywords": ["SKTT", "residency", "proof", "deadline"]
     },
-    "What are the internet package options for Tourist SIM Card?": {
+    "What are the recommended mobile apps for finding accommodation in Surabaya?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["SIM Card", "internet", "package", "tourist"]
+        "keywords": ["accommodation", "apps", "Surabaya", "mobile"]
     },
-    "How much does accommodation cost per month near ITS?": {
+    "How to register for a local bank account at Mandiri?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["accommodation", "cost", "month", "ITS"]
+        "keywords": ["bank", "Mandiri", "account", "register"]
     },
-    "What is the emergency hotline number in Surabaya?": {
+    "What are the emergency hotline numbers in Surabaya?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
         "keywords": ["emergency", "hotline", "Surabaya", "number"]
     },
-    "Which banks are available inside ITS campus?": {
+    "What is the dress code for attending classes at ITS?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["bank", "ITS", "campus"]
+        "keywords": ["dress", "code", "class", "ITS"]
     },
-    "What are the nearest hospitals to ITS?": {
+    "Which hospitals are recommended near the ITS campus?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["hospital", "nearest", "ITS"]
+        "keywords": ["hospital", "recommended", "ITS", "campus"]
     },
-    "What is the fine for not having proof of residency within 14 days?": {
+    "What transport options are available from Juanda International Airport to ITS?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["fine", "residency", "proof", "14 days"]
+        "keywords": ["Juanda", "airport", "transport", "ITS"]
     },
-    "Which transportation apps can I use in Surabaya?": {
+    "How to use the Suroboyo Bus and what is the cost for students?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["transportation", "app", "Surabaya"]
+        "keywords": ["Suroboyo", "bus", "cost", "students"]
     },
-    "What faculties are available at ITS?": {
+    "What are the \"Dos and Don'ts\" regarding etiquette in Indonesia?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["faculty", "faculties", "ITS"]
+        "keywords": ["etiquette", "dos", "don'ts", "Indonesia"]
     },
-    "How long does the admission evaluation process take?": {
+    "Where is the Global Engagement Office located?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["admission", "evaluation", "process"]
+        "keywords": ["Global Engagement", "office", "location"]
     },
-    "How do I open a bank account in Indonesia?": {
+    "What is the process for extending a tourist IMEI registration?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["bank", "account", "open", "Indonesia"]
+        "keywords": ["IMEI", "tourist", "extend", "registration"]
     },
-    "What are the requirements for extending a study visa?": {
+    "List of faculties available under the SCIENTICS cluster.": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["visa", "extend", "study", "requirements"]
+        "keywords": ["SCIENTICS", "faculty", "faculties", "cluster"]
     },
-    "Who should I contact in case of an emergency?": {
+    "What is the \"O-Week\" and why is it mandatory?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["emergency", "contact"]
+        "keywords": ["O-Week", "orientation", "mandatory"]
     },
-    "Where can I find halal food near the campus?": {
+    "How to activate the \"Livin by Mandiri\" mobile banking app?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["halal", "food", "campus"]
+        "keywords": ["Livin", "Mandiri", "banking", "activate"]
     },
-    "What sports facilities are available for students?": {
+    "What are the estimated living costs for accommodation near ITS?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["sports", "facilities", "students"]
+        "keywords": ["living", "cost", "accommodation", "ITS"]
     },
-    "What is the procedure for visa on arrival?": {
+    "Where can students find traditional markets near the campus?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["visa", "arrival", "procedure"]
+        "keywords": ["market", "traditional", "campus", "students"]
     },
-    "How do I get a KITAS (temporary stay permit)?": {
+    "What steps should be taken during an earthquake according to the disaster mitigation guide?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["KITAS", "temporary", "stay", "permit"]
+        "keywords": ["earthquake", "disaster", "mitigation", "steps"]
     },
-    "What are the living costs in Surabaya for students?": {
+    "What is the meaning of the Indonesian slang \"Mager\"?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["living", "cost", "Surabaya", "students"]
+        "keywords": ["Mager", "slang", "Indonesian", "meaning"]
     },
-    "Where can I exchange foreign currency in Surabaya?": {
+    "How can international students join Student Activity Units (UKM)?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["exchange", "currency", "Surabaya"]
+        "keywords": ["UKM", "student", "activity", "international"]
     },
-    "What is the process for airport pickup service?": {
+    "What are the requirements for an Internship Visa (C22A)?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["airport", "pickup", "service"]
+        "keywords": ["C22A", "internship", "visa", "requirements"]
     },
-    "How do I get Indonesian phone number (SIM card)?": {
+    "Locations of places of worship (mosques and churches) around ITS.": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["phone", "SIM card", "Indonesian"]
+        "keywords": ["mosque", "church", "worship", "ITS"]
     },
-    "What are the requirements for ITAS application?": {
+    "What facilities are available at the ITS Medical Centre?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["ITAS", "requirements", "application"]
+        "keywords": ["medical", "centre", "facilities", "ITS"]
     },
-    "Where is the immigration office for visa extension?": {
+    "How to use Gojek or Grab for local transportation?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["immigration", "office", "visa", "extension"]
+        "keywords": ["Gojek", "Grab", "transportation", "local"]
     },
-    "What public transportation is available in Surabaya?": {
+    "What is the penalty for failing to obtain Proof of Residency within 14 days?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["public", "transportation", "Surabaya"]
-    },
-    "How do I register at the local immigration office?": {
-        "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["register", "immigration", "local"]
-    },
-    "What health insurance options are available for international students?": {
-        "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
-        "keywords": ["health", "insurance", "international", "students"]
+        "keywords": ["penalty", "residency", "14 days", "fine"]
     }
 }
 
