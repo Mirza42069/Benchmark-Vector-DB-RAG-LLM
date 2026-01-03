@@ -191,7 +191,7 @@ with config_col3:
     st.markdown('<p style="color: #71717A; font-size: 0.75rem; margin-bottom: 8px;">Parameters</p>', unsafe_allow_html=True)
     param_col1, param_col2 = st.columns(2)
     with param_col1:
-        num_queries = st.selectbox("Queries", [10, 20, 30, 40, 50, 60], index=5, label_visibility="collapsed")
+        num_queries = st.selectbox("Queries", [10, 20, 30, 40, 50, 60, 80, 100], index=7, label_visibility="collapsed")
     with param_col2:
         top_k = st.selectbox("Top K", [1, 2, 3, 4, 5], index=2, label_visibility="collapsed")
 
@@ -220,6 +220,12 @@ with col_doc:
                 "file": "Panduan-Mahasiswa-Baru-DPTSI-2025_revised-1.pdf",
                 "language": "Indonesian",
                 "date": "2025"
+            },
+            {
+                "name": "Perjanjian Angkutan MRT Jakarta",
+                "file": "MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf",
+                "language": "Indonesian",
+                "date": "2021"
             }
         ]
         

@@ -250,6 +250,174 @@ GROUND_TRUTH = {
     "What is the penalty for failing to obtain Proof of Residency within 14 days?": {
         "relevant_sources": ["General-Guidebook-for-International-Students_July-2024.pdf"],
         "keywords": ["penalty", "residency", "14 days", "fine"]
+    },
+
+    # ========== INDONESIAN QUERIES (Document 3: MAN 01 - Perjanjian Angkutan dengan Penumpang 2021 - MRT Jakarta) ==========
+    # Kategori: Umum & Pelayanan
+    "Apa definisi 'Penumpang' menurut peraturan MRT Jakarta?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["penumpang", "definisi", "MRT", "peraturan"]
+    },
+    "Jam berapa stasiun MRT Jakarta mulai dibuka dan ditutup setiap harinya?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["jam", "stasiun", "buka", "tutup", "operasional"]
+    },
+    "Apakah MRT Jakarta menyediakan kereta khusus wanita dan kapan jadwalnya?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["wanita", "kereta", "khusus", "jadwal"]
+    },
+    "Apa saja fasilitas yang tersedia di area berbayar stasiun?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["fasilitas", "area", "berbayar", "stasiun"]
+    },
+    "Apa kompensasi yang diberikan MRT Jakarta jika gagal memenuhi Standar Pelayanan Minimum?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["kompensasi", "standar", "pelayanan", "minimum", "SPM"]
+    },
+    # Kategori: Tiket & Pembayaran
+    "Apa saja jenis alat pembayaran yang sah untuk naik MRT Jakarta?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["pembayaran", "alat", "tiket", "sah"]
+    },
+    "Bagaimana aturan penggunaan tiket Single Trip Ticket (STT)?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["STT", "Single Trip", "tiket", "aturan"]
+    },
+    "Berapa saldo minimum yang harus ada di Multi Trip Ticket (MTT) agar bisa digunakan?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["MTT", "saldo", "minimum", "Multi Trip"]
+    },
+    "Apakah tiket STT bisa di-refund atau dikembalikan depositnya?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["STT", "refund", "deposit", "kembali"]
+    },
+    "Bagaimana cara menghitung tarif untuk penumpang anak-anak?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["tarif", "anak", "hitung", "penumpang"]
+    },
+    "Apakah satu tiket bisa digunakan oleh dua orang secara bersamaan?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["tiket", "dua", "orang", "bersamaan"]
+    },
+    "Apa yang harus dilakukan jika saldo MTT kurang saat berada di stasiun tujuan?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["saldo", "MTT", "kurang", "stasiun"]
+    },
+    "Berapa harga pembelian kartu perdana untuk MTT dan STT?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["kartu", "perdana", "harga", "MTT", "STT"]
+    },
+    "Apakah uang elektronik bank (seperti e-money/flazz) bisa diisi ulang di loket stasiun MRT?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["uang elektronik", "e-money", "flazz", "isi ulang", "loket"]
+    },
+    "Berapa batas maksimum saldo yang boleh disimpan dalam kartu MTT?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["saldo", "maksimum", "MTT", "batas"]
+    },
+    # Kategori: Penggunaan & Kendala Tiket
+    "Apa yang terjadi jika saya masuk dan keluar di stasiun yang sama (tidak jadi naik kereta)?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["masuk", "keluar", "stasiun", "sama"]
+    },
+    "Bagaimana jika kartu MTT saya rusak dan tidak terbaca mesin, apakah saldo bisa kembali?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["MTT", "rusak", "saldo", "kembali"]
+    },
+    "Apa sanksi jika penumpang tidak melakukan tap-out di gerbang keluar?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["tap-out", "gerbang", "keluar", "sanksi"]
+    },
+    "Berapa lama masa berlaku Single Trip Ticket (STT) setelah diisi ulang?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["STT", "masa berlaku", "isi ulang"]
+    },
+    "Apakah tiket kode QR yang sudah dibeli bisa dibatalkan atau di-refund?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["QR", "tiket", "refund", "batal"]
+    },
+    # Kategori: Larangan & Sanksi (Denda)
+    "Berapa denda jika ketahuan makan atau minum di dalam kereta?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["denda", "makan", "minum", "kereta"]
+    },
+    "Apakah penumpang boleh merokok atau menggunakan vape di area stasiun?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["merokok", "vape", "rokok", "stasiun", "larangan"]
+    },
+    "Berapa denda yang dikenakan jika membuang sampah sembarangan di area MRT?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["denda", "sampah", "buang", "MRT"]
+    },
+    "Apa sanksi bagi penumpang yang menyalahgunakan alat keselamatan darurat tanpa alasan jelas?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["sanksi", "keselamatan", "darurat", "alat"]
+    },
+    "Berapa denda jika penumpang bersandar pada pintu tepi peron (PSD)?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["denda", "PSD", "peron", "pintu", "bersandar"]
+    },
+    "Apakah boleh mengambil foto atau video untuk tujuan komersial di stasiun?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["foto", "video", "komersial", "stasiun"]
+    },
+    "Apa sanksi untuk penumpang yang melakukan pelecehan seksual atau asusila?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["pelecehan", "seksual", "asusila", "sanksi"]
+    },
+    "Apakah boleh melakukan kampanye politik atau orasi di dalam stasiun?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["kampanye", "politik", "orasi", "stasiun"]
+    },
+    # Kategori: Barang Bawaan & Sepeda
+    "Apakah hewan peliharaan boleh dibawa masuk ke dalam kereta MRT?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["hewan", "peliharaan", "kereta", "MRT"]
+    },
+    "Berapa ukuran dimensi maksimal barang bawaan yang boleh dibawa penumpang?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["dimensi", "barang", "ukuran", "maksimal"]
+    },
+    "Apa syarat membawa sepeda non-lipat masuk ke dalam MRT Jakarta?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["sepeda", "non-lipat", "syarat", "MRT"]
+    },
+    "Kapan jam sibuk di mana sepeda non-lipat dilarang masuk ke kereta?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["jam sibuk", "sepeda", "dilarang", "kereta"]
+    },
+    "Di gerbong mana penumpang dengan sepeda non-lipat harus naik?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["gerbong", "sepeda", "non-lipat", "naik"]
+    },
+    "Apakah boleh membawa durian atau makanan berbau menyengat ke dalam kereta?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["durian", "makanan", "bau", "menyengat"]
+    },
+    "Apakah skuter listrik atau skateboard boleh digunakan di dalam stasiun?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["skuter", "skateboard", "listrik", "stasiun"]
+    },
+    "Bagaimana aturan membawa alat musik besar seperti gitar atau keyboard?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["alat musik", "gitar", "keyboard", "aturan"]
+    },
+    "Apakah gunting atau pisau boleh dibawa masuk ke dalam stasiun?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["gunting", "pisau", "bawa", "stasiun"]
+    },
+    # Kategori: Keamanan & Lain-lain
+    "Apa prosedur Lost & Found jika barang saya tertinggal di kereta?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["Lost", "Found", "barang", "tertinggal"]
+    },
+    "Berapa lama barang temuan disimpan oleh MRT sebelum menjadi milik perusahaan?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["barang", "temuan", "simpan", "milik"]
+    },
+    "Apakah satpam berhak memeriksa tas atau barang bawaan penumpang?": {
+        "relevant_sources": ["MAN 01 - Perjanjian Angkutan dengan Penumpang 2021.pdf"],
+        "keywords": ["satpam", "periksa", "tas", "barang"]
     }
 }
 

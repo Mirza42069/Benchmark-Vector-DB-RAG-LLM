@@ -126,10 +126,10 @@ print(f"   Processing {len(chunks)} chunks in {total_batches} batches...")
 for i in range(0, len(chunks), batch_size):
     batch_docs = chunks[i:i + batch_size]
     batch_ids = uuids[i:i + batch_size]
+    current_batch = (i // batch_size) + 1
     
     try:
         vector_store.add_documents(documents=batch_docs, ids=batch_ids)
-        current_batch = (i // batch_size) + 1
         print(f"   ✓ Batch {current_batch}/{total_batches} completed")
     except Exception as e:
         print(f"   ✗ Error in batch {current_batch}: {str(e)}")

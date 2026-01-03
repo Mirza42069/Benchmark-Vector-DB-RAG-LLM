@@ -44,10 +44,10 @@ existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
 
 if INDEX_NAME not in existing_indexes:
     print(f"\n🆕 Creating new index: {INDEX_NAME}")
-    print(f"   Embedding dimension: 1024 (bge-m3)")
+    print(f"   Embedding dimension: 1024 (mxbai-embed-large)")
     pc.create_index(
         name=INDEX_NAME,
-        dimension=1024,  # bge-m3 produces 1024-dimensional vectors
+        dimension=1024,  # mxbai-embed-large produces 1024-dimensional vectors
         metric="cosine",
         spec=ServerlessSpec(cloud="aws", region="us-east-1"),
     )
@@ -114,10 +114,10 @@ print(f"   Processing {len(chunks)} chunks in {total_batches} batches...")
 for i in range(0, len(chunks), batch_size):
     batch_docs = chunks[i:i + batch_size]
     batch_ids = uuids[i:i + batch_size]
+    current_batch = (i // batch_size) + 1
     
     try:
         vector_store.add_documents(documents=batch_docs, ids=batch_ids)
-        current_batch = (i // batch_size) + 1
         print(f"   ✓ Batch {current_batch}/{total_batches} completed")
     except Exception as e:
         print(f"   ✗ Error in batch {current_batch}: {str(e)}")

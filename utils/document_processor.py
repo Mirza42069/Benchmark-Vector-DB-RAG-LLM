@@ -91,8 +91,8 @@ class DocumentProcessor:
         # Unified splitter for all languages (fair benchmarking)
         # Using consistent chunk size ensures equal comparison across databases
         unified_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=900,      # Unified size for fair benchmarking
-            chunk_overlap=180,   # Unified overlap
+            chunk_size=500,      # Unified size for fair benchmarking (fits mxbai-embed-large context)
+            chunk_overlap=100,   # Unified overlap
             length_function=len,
             separators=["\n\n", "\n", ". ", " ", ""]
         )
@@ -118,7 +118,7 @@ class DocumentProcessor:
         print(f"   🇮🇩 Indonesian chunks: {len(chunks_indonesian)}")
         print(f"   🇬🇧 English chunks: {len(chunks_english)}")
         print(f"   ❓ Mixed chunks: {len(chunks_mixed)}")
-        print(f"   📏 Chunk size: 900 chars | Overlap: 180 chars")
+        print(f"   📏 Chunk size: 500 chars | Overlap: 100 chars")
         
         return all_chunks
     
@@ -154,8 +154,9 @@ class DocumentProcessor:
 # Sample test queries for benchmarking
 # Indonesian queries: Based on "Panduan-Mahasiswa-Baru-DPTSI-2025" (IT services guide)
 # English queries: Based on "General-Guidebook-for-International-Students_July-2024"
+# MRT queries: Based on "MAN 01 - Perjanjian Angkutan dengan Penumpang 2021"
 SAMPLE_QUERIES = [
-    # ========== 60 RELEVANT QUERIES ==========
+    # ========== 100 RELEVANT QUERIES ==========
     
     # --- Indonesian (30 queries) - Document 1: Panduan-Mahasiswa-Baru-DPTSI-2025 ---
     "Apa itu myITS Portal dan apa fungsinya?",
@@ -219,5 +220,53 @@ SAMPLE_QUERIES = [
     "Locations of places of worship (mosques and churches) around ITS.",
     "What facilities are available at the ITS Medical Centre?",
     "How to use Gojek or Grab for local transportation?",
-    "What is the penalty for failing to obtain Proof of Residency within 14 days?"
+    "What is the penalty for failing to obtain Proof of Residency within 14 days?",
+
+    # --- Indonesian (40 queries) - Document 3: MAN 01 - Perjanjian Angkutan dengan Penumpang 2021 (MRT Jakarta) ---
+    # Kategori: Umum & Pelayanan
+    "Apa definisi 'Penumpang' menurut peraturan MRT Jakarta?",
+    "Jam berapa stasiun MRT Jakarta mulai dibuka dan ditutup setiap harinya?",
+    "Apakah MRT Jakarta menyediakan kereta khusus wanita dan kapan jadwalnya?",
+    "Apa saja fasilitas yang tersedia di area berbayar stasiun?",
+    "Apa kompensasi yang diberikan MRT Jakarta jika gagal memenuhi Standar Pelayanan Minimum?",
+    # Kategori: Tiket & Pembayaran
+    "Apa saja jenis alat pembayaran yang sah untuk naik MRT Jakarta?",
+    "Bagaimana aturan penggunaan tiket Single Trip Ticket (STT)?",
+    "Berapa saldo minimum yang harus ada di Multi Trip Ticket (MTT) agar bisa digunakan?",
+    "Apakah tiket STT bisa di-refund atau dikembalikan depositnya?",
+    "Bagaimana cara menghitung tarif untuk penumpang anak-anak?",
+    "Apakah satu tiket bisa digunakan oleh dua orang secara bersamaan?",
+    "Apa yang harus dilakukan jika saldo MTT kurang saat berada di stasiun tujuan?",
+    "Berapa harga pembelian kartu perdana untuk MTT dan STT?",
+    "Apakah uang elektronik bank (seperti e-money/flazz) bisa diisi ulang di loket stasiun MRT?",
+    "Berapa batas maksimum saldo yang boleh disimpan dalam kartu MTT?",
+    # Kategori: Penggunaan & Kendala Tiket
+    "Apa yang terjadi jika saya masuk dan keluar di stasiun yang sama (tidak jadi naik kereta)?",
+    "Bagaimana jika kartu MTT saya rusak dan tidak terbaca mesin, apakah saldo bisa kembali?",
+    "Apa sanksi jika penumpang tidak melakukan tap-out di gerbang keluar?",
+    "Berapa lama masa berlaku Single Trip Ticket (STT) setelah diisi ulang?",
+    "Apakah tiket kode QR yang sudah dibeli bisa dibatalkan atau di-refund?",
+    # Kategori: Larangan & Sanksi (Denda)
+    "Berapa denda jika ketahuan makan atau minum di dalam kereta?",
+    "Apakah penumpang boleh merokok atau menggunakan vape di area stasiun?",
+    "Berapa denda yang dikenakan jika membuang sampah sembarangan di area MRT?",
+    "Apa sanksi bagi penumpang yang menyalahgunakan alat keselamatan darurat tanpa alasan jelas?",
+    "Berapa denda jika penumpang bersandar pada pintu tepi peron (PSD)?",
+    "Apakah boleh mengambil foto atau video untuk tujuan komersial di stasiun?",
+    "Apa sanksi untuk penumpang yang melakukan pelecehan seksual atau asusila?",
+    "Apakah boleh melakukan kampanye politik atau orasi di dalam stasiun?",
+    # Kategori: Barang Bawaan & Sepeda
+    "Apakah hewan peliharaan boleh dibawa masuk ke dalam kereta MRT?",
+    "Berapa ukuran dimensi maksimal barang bawaan yang boleh dibawa penumpang?",
+    "Apa syarat membawa sepeda non-lipat masuk ke dalam MRT Jakarta?",
+    "Kapan jam sibuk di mana sepeda non-lipat dilarang masuk ke kereta?",
+    "Di gerbong mana penumpang dengan sepeda non-lipat harus naik?",
+    "Apakah boleh membawa durian atau makanan berbau menyengat ke dalam kereta?",
+    "Apakah skuter listrik atau skateboard boleh digunakan di dalam stasiun?",
+    "Bagaimana aturan membawa alat musik besar seperti gitar atau keyboard?",
+    "Apakah gunting atau pisau boleh dibawa masuk ke dalam stasiun?",
+    # Kategori: Keamanan & Lain-lain
+    "Apa prosedur Lost & Found jika barang saya tertinggal di kereta?",
+    "Berapa lama barang temuan disimpan oleh MRT sebelum menjadi milik perusahaan?",
+    "Apakah satpam berhak memeriksa tas atau barang bawaan penumpang?"
 ]
