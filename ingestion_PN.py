@@ -19,7 +19,8 @@ load_dotenv()
 # Configuration
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "its-helpdesk-chatbot")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen3-embedding")
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "4096"))  # qwen3-embedding:8b=4096, mxbai=1024
 
 print("\n" + "="*80)
 print("📚 PINECONE DOCUMENT INGESTION")
@@ -44,10 +45,10 @@ existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
 
 if INDEX_NAME not in existing_indexes:
     print(f"\n🆕 Creating new index: {INDEX_NAME}")
-    print(f"   Embedding dimension: 1024 (mxbai-embed-large)")
+    print(f"   Embedding dimension: {EMBEDDING_DIM}")
     pc.create_index(
         name=INDEX_NAME,
-        dimension=1024,  # mxbai-embed-large produces 1024-dimensional vectors
+        dimension=EMBEDDING_DIM,  # Configurable via EMBEDDING_DIM env var
         metric="cosine",
         spec=ServerlessSpec(cloud="aws", region="us-east-1"),
     )
@@ -141,7 +142,7 @@ print(f"   • Total chunks created: {len(chunks)}")
 print(f"   • Vectors stored in Pinecone: {stored_count}")
 print(f"   • Index name: {INDEX_NAME}")
 print(f"   • Embedding model: {EMBEDDING_MODEL}")
-print(f"   • Vector dimension: 1024")
+print(f"   • Vector dimension: {EMBEDDING_DIM}")
 print(f"\n🌍 Language Distribution:")
 for lang, count in sorted(lang_distribution.items()):
     lang_name = {"id": "🇮🇩 Indonesian", "en": "🇬🇧 English", "mixed": "🌍 Mixed"}.get(lang, f"❓ {lang}")

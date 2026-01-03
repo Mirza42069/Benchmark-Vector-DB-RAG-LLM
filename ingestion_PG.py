@@ -22,7 +22,8 @@ DB_NAME = os.getenv("DB_NAME", "ragdb")
 DB_USER = os.getenv("DB_USER", "raguser")
 DB_PASSWORD = require_env("DB_PASSWORD")  # Required - no default for security
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "its_guidebook")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen3-embedding")
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "4096"))  # qwen3-embedding:8b=4096, mxbai=1024
 
 # Create connection string with properly encoded credentials
 connection_string = build_pg_connection_string(
@@ -165,7 +166,7 @@ print(f"   • Vectors stored: {len(chunks)}")
 print(f"   • Database: {DB_NAME}")
 print(f"   • Collection: {COLLECTION_NAME}")
 print(f"   • Embedding model: {EMBEDDING_MODEL}")
-print(f"   • Vector dimension: 1024")
+print(f"   • Vector dimension: {EMBEDDING_DIM}")
 print(f"\n🌍 Language Distribution:")
 for lang, count in sorted(lang_distribution.items()):
     lang_name = {"id": "🇮🇩 Indonesian", "en": "🇬🇧 English", "mixed": "🌍 Mixed"}.get(lang, f"❓ {lang}")

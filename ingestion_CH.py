@@ -18,7 +18,8 @@ load_dotenv()
 # Configuration
 CHROMA_PATH = "chroma_db"
 COLLECTION_NAME = "its_guidebook"
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "mxbai-embed-large")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen3-embedding")
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "4096"))  # qwen3-embedding:8b=4096, mxbai=1024
 
 print("\n" + "="*80)
 print("📚 CHROMADB DOCUMENT INGESTION")
@@ -155,7 +156,7 @@ print(f"   • Vectors stored: {doc_count}")
 print(f"   • Storage path: {CHROMA_PATH}")
 print(f"   • Collection: {COLLECTION_NAME}")
 print(f"   • Embedding model: {EMBEDDING_MODEL}")
-print(f"   • Vector dimension: 1024")
+print(f"   • Vector dimension: {EMBEDDING_DIM}")
 print(f"\n🌍 Language Distribution:")
 for lang, count in sorted(lang_distribution.items()):
     lang_name = {"id": "🇮🇩 Indonesian", "en": "🇬🇧 English", "mixed": "🌍 Mixed"}.get(lang, f"❓ {lang}")
