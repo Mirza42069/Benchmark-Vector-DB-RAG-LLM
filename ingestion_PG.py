@@ -22,8 +22,7 @@ DB_NAME = os.getenv("DB_NAME", "ragdb")
 DB_USER = os.getenv("DB_USER", "raguser")
 DB_PASSWORD = require_env("DB_PASSWORD")  # Required - no default for security
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "its_guidebook")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen3-embedding")
-EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "4096"))  # qwen3-embedding:8b=4096, mxbai=1024
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen3-embedding:8b")
 
 # Create connection string with properly encoded credentials
 connection_string = build_pg_connection_string(
@@ -59,41 +58,7 @@ except Exception as e:
     print("\n💡 Did you run setup_postgresql.py first?")
     sys.exit(1)
 
-# Check if collection already has data
-print(f"\n🔍 Checking existing data...")
-try:
-    existing_results = vector_store.similarity_search("test", k=1)
-    if existing_results:
-        print(f"   ✅ Collection '{COLLECTION_NAME}' already has data.")
-        print("   ⏭️  Skipping ingestion. Use --force or clear database to re-ingest.")
-        
-        # Skip to test retrieval
-        print("\n" + "="*80)
-        print("🧪 Testing retrieval with sample queries...")
-        print("-" * 80)
-        
-        test_queries = [
-            ("🇮🇩", "Bagaimana cara mengubah password myITS Portal?"),
-            ("🇬🇧", "What documents do I need to bring when arriving in Surabaya?"),
-        ]
-        
-        for lang_flag, query in test_queries:
-            print(f"\n{lang_flag} Testing: \"{query}\"")
-            try:
-                results = vector_store.similarity_search(query, k=3)
-                if results:
-                    print(f"   ✅ Found {len(results)} relevant chunks")
-                else:
-                    print("   ❌ No results found!")
-            except Exception as e:
-                print(f"   ❌ Error: {str(e)}")
-        
-        print("\n" + "="*80)
-        print("✨ Ready to use! Run: streamlit run chatbot_postgresql.py")
-        print("="*80)
-        sys.exit(0)
-except Exception:
-    pass  # No data exists, proceed with ingestion
+# Force clear existing collection for fresh start
 
 # Clear existing collection for fresh start
 print(f"\n🗑️  Clearing existing collection '{COLLECTION_NAME}'...")
@@ -166,7 +131,7 @@ print(f"   • Vectors stored: {len(chunks)}")
 print(f"   • Database: {DB_NAME}")
 print(f"   • Collection: {COLLECTION_NAME}")
 print(f"   • Embedding model: {EMBEDDING_MODEL}")
-print(f"   • Vector dimension: {EMBEDDING_DIM}")
+print(f"   • Vector dimension: 4096")
 print(f"\n🌍 Language Distribution:")
 for lang, count in sorted(lang_distribution.items()):
     lang_name = {"id": "🇮🇩 Indonesian", "en": "🇬🇧 English", "mixed": "🌍 Mixed"}.get(lang, f"❓ {lang}")

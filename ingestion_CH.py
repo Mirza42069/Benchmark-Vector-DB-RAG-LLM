@@ -18,8 +18,7 @@ load_dotenv()
 # Configuration
 CHROMA_PATH = "chroma_db"
 COLLECTION_NAME = "its_guidebook"
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen3-embedding")
-EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "4096"))  # qwen3-embedding:8b=4096, mxbai=1024
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen3-embedding:8b")
 
 print("\n" + "="*80)
 print("📚 CHROMADB DOCUMENT INGESTION")
@@ -33,49 +32,7 @@ embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
 print(f"\n🔌 Initializing ChromaDB...")
 client = chromadb.PersistentClient(path=CHROMA_PATH)
 
-# Check if collection exists and has data
-try:
-    existing_collection = client.get_collection(name=COLLECTION_NAME)
-    existing_count = existing_collection.count()
-    
-    if existing_count > 0:
-        print(f"\n✅ Collection '{COLLECTION_NAME}' already exists with {existing_count} documents.")
-        print("   ⏭️  Skipping ingestion. Delete 'chroma_db' folder to re-ingest.")
-        
-        # Initialize vector store for testing
-        vector_store = Chroma(
-            client=client,
-            collection_name=COLLECTION_NAME,
-            embedding_function=embeddings,
-        )
-        
-        # Skip to test retrieval
-        print("\n" + "="*80)
-        print("🧪 Testing retrieval with sample queries...")
-        print("-" * 80)
-        
-        test_queries = [
-            ("🇮🇩", "Bagaimana cara mengubah password myITS Portal?"),
-            ("🇬🇧", "What documents do I need to bring when arriving in Surabaya?"),
-        ]
-        
-        for lang_flag, query in test_queries:
-            print(f"\n{lang_flag} Testing: \"{query}\"")
-            try:
-                results = vector_store.similarity_search(query, k=3)
-                if results:
-                    print(f"   ✅ Found {len(results)} relevant chunks")
-                else:
-                    print("   ❌ No results found!")
-            except Exception as e:
-                print(f"   ❌ Error: {str(e)}")
-        
-        print("\n" + "="*80)
-        print("✨ Ready to use! Run: streamlit run chatbot_chroma.py")
-        print("="*80)
-        sys.exit(0)
-except Exception:
-    pass  # Collection doesn't exist, proceed with ingestion
+# Force delete existing collection for fresh start
 
 # Delete existing collection if exists (fresh start)
 try:
@@ -156,7 +113,7 @@ print(f"   • Vectors stored: {doc_count}")
 print(f"   • Storage path: {CHROMA_PATH}")
 print(f"   • Collection: {COLLECTION_NAME}")
 print(f"   • Embedding model: {EMBEDDING_MODEL}")
-print(f"   • Vector dimension: {EMBEDDING_DIM}")
+print(f"   • Vector dimension: 4096")
 print(f"\n🌍 Language Distribution:")
 for lang, count in sorted(lang_distribution.items()):
     lang_name = {"id": "🇮🇩 Indonesian", "en": "🇬🇧 English", "mixed": "🌍 Mixed"}.get(lang, f"❓ {lang}")

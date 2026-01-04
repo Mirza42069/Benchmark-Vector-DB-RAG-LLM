@@ -19,8 +19,7 @@ load_dotenv()
 # Configuration
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "its-helpdesk-chatbot")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen3-embedding")
-EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "4096"))  # qwen3-embedding:8b=4096, mxbai=1024
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "qwen3-embedding:8b")
 
 print("\n" + "="*80)
 print("📚 PINECONE DOCUMENT INGESTION")
@@ -40,15 +39,27 @@ embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
 print(f"\n🔌 Connecting to Pinecone...")
 pc = Pinecone(api_key=PINECONE_API_KEY)
 
-# Check if index exists
+# Check if index exists and delete if wrong dimension
 existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
+
+if INDEX_NAME in existing_indexes:
+    # Check dimension of existing index
+    existing_index_info = pc.describe_index(INDEX_NAME)
+    existing_dim = existing_index_info.dimension
+    if existing_dim != 4096:
+        print(f"\n⚠️  Existing index has dimension {existing_dim}, need 4096")
+        print(f"   🗑️  Deleting old index...")
+        pc.delete_index(INDEX_NAME)
+        print(f"   ✓ Old index deleted")
+        time.sleep(2)  # Wait for deletion to complete
+        existing_indexes = []  # Force recreation
 
 if INDEX_NAME not in existing_indexes:
     print(f"\n🆕 Creating new index: {INDEX_NAME}")
-    print(f"   Embedding dimension: {EMBEDDING_DIM}")
+    print(f"   Embedding dimension: 4096 (qwen3-embedding:8b)")
     pc.create_index(
         name=INDEX_NAME,
-        dimension=EMBEDDING_DIM,  # Configurable via EMBEDDING_DIM env var
+        dimension=4096,  # qwen3-embedding:8b produces 4096-dimensional vectors
         metric="cosine",
         spec=ServerlessSpec(cloud="aws", region="us-east-1"),
     )
@@ -142,7 +153,7 @@ print(f"   • Total chunks created: {len(chunks)}")
 print(f"   • Vectors stored in Pinecone: {stored_count}")
 print(f"   • Index name: {INDEX_NAME}")
 print(f"   • Embedding model: {EMBEDDING_MODEL}")
-print(f"   • Vector dimension: {EMBEDDING_DIM}")
+print(f"   • Vector dimension: 4096")
 print(f"\n🌍 Language Distribution:")
 for lang, count in sorted(lang_distribution.items()):
     lang_name = {"id": "🇮🇩 Indonesian", "en": "🇬🇧 English", "mixed": "🌍 Mixed"}.get(lang, f"❓ {lang}")
