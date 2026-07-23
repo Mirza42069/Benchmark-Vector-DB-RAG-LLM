@@ -1,0 +1,40 @@
+# Core Dependencies
+streamlit>=1.53.1
+python-dotenv>=1.2.1
+
+# LangChain
+langchain>=1.2.8
+langchain-core>=1.2.8
+langchain-community>=0.4.1
+langchain-text-splitters>=1.1.0
+
+# Vector Databases
+pinecone-client>=6.0.0
+langchain-pinecone>=0.2.13
+psycopg[binary]>=3.3.2
+langchain-postgres>=0.0.16
+chromadb>=1.4.1
+langchain-chroma>=1.1.0
+lancedb>=0.25.0
+qdrant-client>=1.16.0
+langchain-qdrant>=1.1.0
+google-cloud-firestore>=2.21.0
+protobuf>=6.33.5,<7
+grpcio-status<1.82
+
+# Ollama
+langchain-ollama>=1.0.1
+
+# Document Processing
+pypdf>=6.6.2
+
+# Data Analysis & Visualization
+pandas>=2.3.3,<3
+plotly>=6.5.2
+numpy>=2.0.0,<3
+
+# Utilities
+requests>=2.32.5
+tqdm>=4.67.3
+psutil>=7.0.0
+deepeval>=4.0.0
